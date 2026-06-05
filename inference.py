@@ -35,11 +35,11 @@ MQTT_TOPIC  = 'engine/sensors'
 
 # ── SEVERITY ──────────────────────────────────────────────────────────────────
 def get_severity(score: float) -> str:
-    if score > THRESHOLD:   return 'NORMAL'
-    elif score > -0.15:     return 'LOW'
-    elif score > -0.25:     return 'MEDIUM'
-    else:                   return 'HIGH'
-
+    if score > -0.50:    return 'NORMAL'
+    elif score > -0.52:  return 'LOW'
+    elif score > -0.55:  return 'MEDIUM'
+    else:                return 'HIGH'
+    
 def get_colour(severity: str) -> str:
     return {'NORMAL':'\033[92m','LOW':'\033[93m','MEDIUM':'\033[33m','HIGH':'\033[91m'}.get(severity,'\033[0m')
 
