@@ -345,8 +345,9 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
     <!-- LOGIN FORM -->
     <div id="loginForm">
       <div class="auth-field">
-        <label>Email address</label>
-        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+        <label>Email address or full name</label>
+        <input type="text" id="loginIdentifier" placeholder="you@example.com or Your Full Name"
+          autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <div class="auth-field">
         <label>Password</label>
@@ -779,6 +780,14 @@ async function doSignup(){
   } else if(data.user && data.user.identities && data.user.identities.length === 0){
     showMsg('signupMsg', 'An account with this email already exists. Please sign in instead.', 'error');
   } else {
+    // Insert into profiles table so name-based login works
+    if(data.user){
+      await sb.from('profiles').upsert({
+        id        : data.user.id,
+        email     : email,
+        full_name : name
+      });
+    }
     showMsg('signupMsg', '✓ Account created! Signing you in…', 'success');
     // auto sign in immediately after signup
     const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password });
@@ -792,22 +801,42 @@ async function doSignup(){
 }
 
 async function doLogin(){
-  const email    = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
+  const identifier = document.getElementById('loginIdentifier').value.trim();
+  const password   = document.getElementById('loginPassword').value;
 
-  if(!email)    return showMsg('loginMsg','Please enter your email address.','error');
-  if(!password) return showMsg('loginMsg','Please enter your password.','error');
+  if(!identifier) return showMsg('loginMsg','Please enter your email or full name.','error');
+  if(!password)   return showMsg('loginMsg','Please enter your password.','error');
 
   setLoading('login', true);
   hideMsg('loginMsg');
 
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  // Determine if the user typed an email or a full name
+  const isEmail = identifier.includes('@');
+  let emailToUse = identifier;
+
+  if(!isEmail){
+    // Look up the email by full name stored in user metadata via our profiles table
+    // We query the profiles table where full_name matches
+    const { data: profiles, error: lookupErr } = await sb
+      .from('profiles')
+      .select('email')
+      .ilike('full_name', identifier)
+      .limit(1);
+
+    if(lookupErr || !profiles || profiles.length === 0){
+      setLoading('login', false);
+      return showMsg('loginMsg','No account found with that name. Try using your email address instead.','error');
+    }
+    emailToUse = profiles[0].email;
+  }
+
+  const { data, error } = await sb.auth.signInWithPassword({ email: emailToUse, password });
 
   setLoading('login', false);
 
   if(error){
     if(error.message.toLowerCase().includes('invalid login credentials')){
-      showMsg('loginMsg','Incorrect email or password. Please try again.','error');
+      showMsg('loginMsg','Incorrect email/name or password. Please try again.','error');
     } else {
       showMsg('loginMsg', error.message, 'error');
     }
@@ -822,7 +851,7 @@ async function doSignOut(){
   document.getElementById('mainSite').style.display    = 'none';
   document.getElementById('authOverlay').style.display = 'flex';
   // clear forms
-  ['loginEmail','loginPassword','signupName','signupEmail','signupPassword','signupConfirm']
+  ['loginIdentifier','loginPassword','signupName','signupEmail','signupPassword','signupConfirm']
     .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   // reset strength/match indicators
   document.getElementById('pwStrength').className='pw-strength';
