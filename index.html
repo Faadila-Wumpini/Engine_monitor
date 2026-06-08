@@ -115,6 +115,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 }
 .auth-btn:hover{background:#fff;transform:translateY(-1px)}
 .auth-btn:disabled{background:var(--border2);color:var(--muted);cursor:not-allowed;transform:none}
+.google-btn{
+  width:100%;padding:0.75rem;background:var(--s2);color:var(--text);
+  font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.04em;
+  border:1px solid var(--border2);cursor:pointer;margin-top:0.6rem;
+  transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.google-btn:hover{border-color:#4285F4;color:#fff;background:rgba(66,133,244,0.08);transform:translateY(-1px)}
+.google-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.google-icon{width:16px;height:16px;flex-shrink:0}
+.or-divider{
+  display:flex;align-items:center;gap:10px;margin:0.9rem 0 0;
+  font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:0.06em;
+}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border2)}
 .auth-msg{
   margin-top:1rem;padding:0.65rem 0.9rem;
   font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.04em;
@@ -361,6 +375,16 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
       <button class="auth-btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
       <div class="auth-loading" id="loginLoading"><span class="spinner"></span>Authenticating…</div>
       <div class="auth-msg" id="loginMsg"></div>
+      <div class="or-divider">or</div>
+      <button class="google-btn" id="loginGoogleBtn" onclick="doGoogleAuth()">
+        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
       <div class="auth-divider">
         No account yet?<span class="auth-switch" onclick="switchTab('signup')">Create one</span>
       </div>
@@ -409,7 +433,42 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
       <button class="auth-btn" id="signupBtn" onclick="doSignup()">Create Account →</button>
       <div class="auth-loading" id="signupLoading"><span class="spinner"></span>Creating your account…</div>
       <div class="auth-msg" id="signupMsg"></div>
-      <div class="auth-divider">
+      <div class="or-divider" id="signupOrDivider">or</div>
+      <button class="google-btn" id="signupGoogleBtn" onclick="doGoogleAuth()">
+        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <!-- confirmation sent state -->
+      <div id="confirmPanel" style="display:none">
+        <div style="background:rgba(232,255,71,0.05);border:1px solid rgba(232,255,71,0.2);padding:1rem;margin-top:0.75rem">
+          <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--acc);margin-bottom:0.5rem;letter-spacing:0.04em">
+            ✉ Confirmation email sent
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted2);line-height:1.65;margin-bottom:0.75rem">
+            Check your inbox at <strong id="confirmedEmail" style="color:var(--text)"></strong> and click the confirmation link to activate your account.<br><br>
+            <span style="color:var(--amber);font-size:0.72rem">⚠ The confirmation link expires after <strong>1 hour</strong>.</span>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);margin-bottom:0.6rem" id="resendCountdown">
+            Resend available in <span id="countdownSecs" style="color:var(--acc)">60</span>s
+          </div>
+          <button class="auth-btn" id="resendBtn" onclick="doResend()"
+            style="margin-top:0;background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:not-allowed"
+            disabled>Resend confirmation email</button>
+          <div class="auth-loading" id="resendLoading"><span class="spinner"></span>Resending…</div>
+          <div class="auth-msg" id="resendMsg"></div>
+        </div>
+        <div style="text-align:center;margin-top:1rem;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted)">
+          Wrong email? <span class="auth-switch" onclick="resetSignup()">Start over</span>
+        </div>
+      </div>
+
+      <div id="signupDivider" class="auth-divider">
         Already have an account?<span class="auth-switch" onclick="switchTab('login')">Sign in</span>
       </div>
     </div>
@@ -788,16 +847,125 @@ async function doSignup(){
         full_name : name
       });
     }
-    showMsg('signupMsg', '✓ Account created! Signing you in…', 'success');
-    // auto sign in immediately after signup
-    const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-    if(loginErr){
-      showMsg('signupMsg', '✓ Account created! Please sign in.', 'success');
-      setTimeout(()=>switchTab('login'), 1500);
+    // Check if email confirmation is required (session will be null if so)
+    if(!data.session){
+      // Email confirmation required — show confirm panel
+      showConfirmPanel(email);
     } else {
-      setTimeout(()=>showMainSite(loginData.user), 900);
+      // Email confirmation disabled — log straight in
+      showMsg('signupMsg', '✓ Account created! Signing you in…', 'success');
+      setTimeout(()=>showMainSite(data.user), 900);
     }
   }
+}
+
+// ── CONFIRM PANEL & RESEND ───────────────────────────────────────────────────
+let resendEmail = '';
+let resendTimer = null;
+
+function showConfirmPanel(email){
+  resendEmail = email;
+  document.getElementById('confirmedEmail').textContent = email;
+  document.getElementById('signupBtn').style.display       = 'none';
+  document.getElementById('signupLoading').style.display   = 'none';
+  document.getElementById('signupMsg').style.display       = 'none';
+  document.getElementById('signupDivider').style.display   = 'none';
+  document.getElementById('signupOrDivider').style.display = 'none';
+  document.getElementById('signupGoogleBtn').style.display = 'none';
+  document.getElementById('confirmPanel').style.display    = 'block';
+  // hide all signup fields
+  document.querySelectorAll('#signupForm .auth-field').forEach(el=>el.style.display='none');
+  startResendCountdown(60);
+}
+
+function resetSignup(){
+  resendEmail = '';
+  clearInterval(resendTimer);
+  document.getElementById('confirmPanel').style.display    = 'none';
+  document.getElementById('signupBtn').style.display       = '';
+  document.getElementById('signupDivider').style.display   = '';
+  document.getElementById('signupOrDivider').style.display = '';
+  document.getElementById('signupGoogleBtn').style.display = '';
+  document.querySelectorAll('#signupForm .auth-field').forEach(el=>el.style.display='');
+  ['signupName','signupEmail','signupPassword','signupConfirm']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('pwStrength').className='pw-strength';
+  document.getElementById('pwMatch').className='pw-match';
+  hideMsg('signupMsg'); hideMsg('resendMsg');
+}
+
+function startResendCountdown(seconds){
+  const btn  = document.getElementById('resendBtn');
+  const cd   = document.getElementById('resendCountdown');
+  const sec  = document.getElementById('countdownSecs');
+  let remaining = seconds;
+  btn.disabled = true;
+  btn.style.background   = 'transparent';
+  btn.style.borderColor  = 'var(--border2)';
+  btn.style.color        = 'var(--muted)';
+  btn.style.cursor       = 'not-allowed';
+  cd.style.display = 'block';
+  sec.textContent = remaining;
+  clearInterval(resendTimer);
+  resendTimer = setInterval(()=>{
+    remaining--;
+    sec.textContent = remaining;
+    if(remaining <= 0){
+      clearInterval(resendTimer);
+      cd.style.display = 'none';
+      btn.disabled = false;
+      btn.style.background  = 'var(--acc)';
+      btn.style.borderColor = 'var(--acc)';
+      btn.style.color       = '#000';
+      btn.style.cursor      = 'pointer';
+    }
+  }, 1000);
+}
+
+async function doResend(){
+  if(!resendEmail) return;
+  document.getElementById('resendBtn').disabled = true;
+  document.getElementById('resendLoading').className = 'auth-loading show';
+  hideMsg('resendMsg');
+
+  const { error } = await sb.auth.resend({
+    type : 'signup',
+    email: resendEmail,
+    options: { emailRedirectTo: 'https://faadila-wumpini.github.io/Engine_monitor' }
+  });
+
+  document.getElementById('resendLoading').className = 'auth-loading';
+
+  if(error){
+    showMsg('resendMsg', error.message, 'error');
+    document.getElementById('resendBtn').disabled = false;
+  } else {
+    showMsg('resendMsg', '✓ Confirmation email resent! Check your inbox.', 'success');
+    startResendCountdown(60);
+  }
+}
+
+async function doGoogleAuth(){
+  // disable both google buttons to prevent double click
+  ['loginGoogleBtn','signupGoogleBtn'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.disabled=true; el.textContent='Redirecting to Google…'; }
+  });
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: 'https://faadila-wumpini.github.io/Engine_monitor',
+      queryParams: { access_type: 'offline', prompt: 'consent' }
+    }
+  });
+  if(error){
+    showMsg('loginMsg', error.message, 'error');
+    ['loginGoogleBtn','signupGoogleBtn'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){ el.disabled=false; el.innerHTML=el.innerHTML.replace('Redirecting to Google…','Continue with Google'); }
+    });
+  }
+  // If no error, browser will redirect to Google — no further action needed
 }
 
 async function doLogin(){
