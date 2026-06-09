@@ -1002,16 +1002,31 @@ async function doResend(){
   document.getElementById('resendLoading').className = 'auth-loading show';
   hideMsg('resendMsg');
 
-  const { error } = await sb.auth.resend({
+  // Try resend first, fall back to signInWithOtp if resend fails
+  let error = null;
+
+  const { error: resendErr } = await sb.auth.resend({
     type : 'signup',
     email: resendEmail,
     options: { emailRedirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/' }
   });
 
+  if(resendErr){
+    // Fallback: use signInWithOtp which also sends a confirmation email
+    const { error: otpErr } = await sb.auth.signInWithOtp({
+      email: resendEmail,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/'
+      }
+    });
+    error = otpErr;
+  }
+
   document.getElementById('resendLoading').className = 'auth-loading';
 
   if(error){
-    showMsg('resendMsg', error.message, 'error');
+    showMsg('resendMsg', '⚠ ' + error.message, 'error');
     document.getElementById('resendBtn').disabled = false;
   } else {
     showMsg('resendMsg', '✓ Confirmation email resent! Check your inbox.', 'success');
