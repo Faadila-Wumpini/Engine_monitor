@@ -24,9 +24,9 @@ from preprocessor import extract_features, normalise
 MODEL_PATH     = 'model.pkl'
 SCALER_PATH    = 'scaler.pkl'
 DATASET_PATH   = 'ai4i2020.csv'
-THRESHOLD      = -0.10          # scores below this = anomaly
+THRESHOLD      = -0.520        # scores below this = anomaly
 WINDOW_SIZE    = 50             # must match what was used in train.py
-SIMULATE_DELAY = 0.1            # seconds between simulated readings (10Hz)
+SIMULATE_DELAY = 0.5            # seconds between simulated readings (10Hz)
 
 # MQTT settings (only needed for live mode)
 MQTT_BROKER    = 'localhost'
