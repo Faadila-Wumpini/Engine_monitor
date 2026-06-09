@@ -792,7 +792,14 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
 const SUPABASE_URL = 'https://vpudvhanmyggzimwcgqo.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwdWR2aGFubXlnZ3ppbXdjZ3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTA2MTQsImV4cCI6MjA5NjA4NjYxNH0.iXIR8-UE5SIaZfAY-Uc6-LaUzYkqfI4LdSY_71V9WQs';
 const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    flowType: 'pkce',
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    persistSession: true,
+  }
+});
 
 // ── PASSWORD UTILITIES ────────────────────────────────────────────────────────
 function hasSpecialChar(pw){ return /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pw); }
@@ -998,7 +1005,7 @@ async function doResend(){
   const { error } = await sb.auth.resend({
     type : 'signup',
     email: resendEmail,
-    options: { emailRedirectTo: 'https://faadila-wumpini.github.io/Engine_monitor' }
+    options: { emailRedirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/' }
   });
 
   document.getElementById('resendLoading').className = 'auth-loading';
@@ -1057,8 +1064,8 @@ async function doGoogleAuth(){
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://faadila-wumpini.github.io/Engine_monitor',
-      queryParams: { access_type: 'offline', prompt: 'consent' }
+      redirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/',
+      skipBrowserRedirect: false,
     }
   });
   if(error){
@@ -1147,21 +1154,9 @@ function showMainSite(user){
 // ── CHECK SESSION ON LOAD ─────────────────────────────────────────────────────
 window.addEventListener('load', async ()=>{
 
-  // Handle OAuth / email confirmation redirect — token comes back in the URL hash
-  // e.g. https://site.com/#access_token=...&type=signup
-  const hash = window.location.hash;
-  if(hash && (hash.includes('access_token') || hash.includes('type=recovery'))){
-    // Supabase JS SDK automatically parses the hash and sets the session
-    // Give it a moment to process, then clean the URL
-    await new Promise(resolve => setTimeout(resolve, 500));
-    // Remove the token from the URL bar so it doesn't show to the user
-    history.replaceState(null, '', window.location.pathname);
-  }
-
-  // Set up auth state listener FIRST before getSession so we don't miss events
+  // Set up auth state listener FIRST — catches PKCE code exchange and email confirmation
   sb.auth.onAuthStateChange((event, session)=>{
-    if(event === 'SIGNED_IN' && session){
-      // Always show main site on sign in regardless of current view state
+    if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
       showMainSite(session.user);
     }
     if(event === 'SIGNED_OUT'){
@@ -1169,14 +1164,25 @@ window.addEventListener('load', async ()=>{
       document.getElementById('authOverlay').style.display = 'flex';
       if(simInterval){ clearInterval(simInterval); simInterval=null; chartsReady=false; }
     }
-    if(event === 'TOKEN_REFRESHED' && session){
-      // Session refreshed silently — just update the email display
-      const emailEl = document.getElementById('navUserEmail');
-      if(emailEl && session.user) emailEl.textContent = session.user.email || '';
-    }
   });
 
-  // Now check for existing session (covers page refresh while logged in)
+  // PKCE: if URL contains ?code= parameter, Supabase SDK exchanges it for a session automatically
+  // detectSessionInUrl:true handles this — we just need to wait for onAuthStateChange to fire
+  // Also handles existing sessions on page refresh
+  const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.has('code')){
+    // PKCE code exchange in progress — SDK will fire SIGNED_IN via onAuthStateChange
+    // Show spinner while it processes
+    const authBox = document.getElementById('authBox');
+    const oauthProc = document.getElementById('oauthProcessing');
+    if(authBox) authBox.style.display = 'none';
+    if(oauthProc) oauthProc.style.display = 'flex';
+    // Clean the URL after a short delay
+    setTimeout(()=> history.replaceState(null,'',window.location.pathname), 1000);
+    return; // onAuthStateChange will call showMainSite
+  }
+
+  // No code param — check for existing session (normal page load / refresh)
   const { data: { session } } = await sb.auth.getSession();
   if(session && session.user){
     showMainSite(session.user);
