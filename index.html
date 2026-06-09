@@ -9,11 +9,67 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+/* ── DARK MODE (default) ── */
 :root{
   --bg:#080808;--s1:#101010;--s2:#161616;--border:#1e1e1e;--border2:#2a2a2a;
   --acc:#e8ff47;--acc2:#ff6b35;--green:#39ff7a;--red:#ff3f3f;--amber:#ffb545;--blue:#7eb8ff;
   --text:#f0f0f0;--muted:#555;--muted2:#888;
 }
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f5f5f0;--s1:#ffffff;--s2:#f0efe8;--border:#e0dfd8;--border2:#d0cfc8;
+  --acc:#5c6f00;--acc2:#c44a10;--green:#2a7a3b;--red:#c0392b;--amber:#a06000;--blue:#1a5fa8;
+  --text:#1a1a1a;--muted:#888;--muted2:#555;
+}
+[data-theme="light"] nav{background:rgba(245,245,240,0.95);}
+[data-theme="light"] .auth-box{background:#fff;}
+[data-theme="light"] .hero-grid{background-image:linear-gradient(rgba(92,111,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(92,111,0,0.04) 1px,transparent 1px);}
+[data-theme="light"] #authOverlay .grid-bg{background-image:linear-gradient(rgba(92,111,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(92,111,0,0.04) 1px,transparent 1px);}
+[data-theme="light"] #authOverlay .glow{background:radial-gradient(circle,rgba(92,111,0,0.07) 0%,transparent 70%);}
+[data-theme="light"] .hero-glow{background:radial-gradient(circle,rgba(92,111,0,0.06) 0%,transparent 70%);}
+[data-theme="light"] .dash-card{background:#fff;}
+[data-theme="light"] .metric-box{background:#f5f5f0;}
+[data-theme="light"] .mon-card{background:#f8f8f4;}
+[data-theme="light"] .sensor-card{background:#fff;}
+[data-theme="light"] .step{background:#fff;}
+[data-theme="light"] .arch-layer{background:#fff;}
+[data-theme="light"] .stack-cat{background:#fff;}
+[data-theme="light"] .team-card{background:#fff;}
+[data-theme="light"] .supervisor-box{background:#fff;}
+[data-theme="light"] .auth-field input{background:#f5f5f0;}
+[data-theme="light"] .google-btn{background:#f5f5f0;color:#1a1a1a;}
+[data-theme="light"] .tbl-wrap{background:#fff;}
+[data-theme="light"] history-table th{background:#f0efe8;}
+[data-theme="light"] .stat-box{background:#f5f5f0;}
+[data-theme="light"] .auth-btn{background:var(--acc);color:#fff;}
+[data-theme="light"] .auth-btn:hover{background:#3a4800;color:#fff;}
+[data-theme="light"] .login-btn{background:var(--acc);}
+[data-theme="light"] .nav-pill{color:#fff;}
+[data-theme="light"] .nav-pill:hover{background:#3a4800;}
+[data-theme="light"] .s-normal{background:rgba(42,122,59,0.1);color:var(--green);}
+[data-theme="light"] .s-alert{background:rgba(192,57,43,0.1);color:var(--red);}
+[data-theme="light"] .sev-normal{background:rgba(42,122,59,0.1);color:var(--green);}
+[data-theme="light"] .sev-high{background:rgba(192,57,43,0.1);color:var(--red);}
+[data-theme="light"] .hero-title .acc{color:var(--acc);}
+[data-theme="light"] .al-name{color:var(--acc);}
+[data-theme="light"] .s-tag{color:var(--acc);}
+[data-theme="light"] .hero-tag{color:var(--acc);border-color:rgba(92,111,0,0.3);}
+[data-theme="light"] .stat-v{color:var(--acc);}
+[data-theme="light"] .mb-val{color:#1a1a1a;}
+[data-theme="light"] .f-logo{color:var(--acc);}
+[data-theme="light"] .nav-logo{color:var(--acc);}
+[data-theme="light"] .auth-logo{color:var(--acc);}
+[data-theme="light"] .auth-tab.active{color:var(--acc);border-bottom-color:var(--acc);}
+[data-theme="light"] .auth-switch{color:var(--acc);}
+[data-theme="light"] .sc-title.vib{color:#1a5fa8;}
+[data-theme="light"] .sc-title.temp{color:#c44a10;}
+/* theme toggle button */
+.theme-toggle{
+  background:none;border:1px solid var(--border2);cursor:pointer;
+  width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1rem;transition:all 0.2s;color:var(--text);
+}
+.theme-toggle:hover{border-color:var(--acc);background:rgba(128,128,128,0.1);}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden}
@@ -346,7 +402,17 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   <div class="grid-bg"></div>
   <div class="glow"></div>
 
-  <div class="auth-box">
+  <!-- OAuth processing indicator -->
+  <div id="oauthProcessing" style="display:none;position:absolute;inset:0;z-index:2;
+    display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+    <div style="width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--acc);
+      border-radius:50%;animation:spin 0.8s linear infinite"></div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.08em">
+      Signing you in…
+    </div>
+  </div>
+
+  <div class="auth-box" id="authBox">
     <div class="auth-logo">Engine<span>IQ</span></div>
     <div class="auth-tagline">Predictive Engine Health Monitor</div>
 
@@ -492,6 +558,7 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   </ul>
   <div class="nav-right">
     <span class="nav-user" id="navUserEmail"></span>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
     <button class="nav-signout" onclick="doSignOut()">Sign Out</button>
     <a href="#monitor" class="nav-pill">Live Monitor →</a>
   </div>
@@ -945,11 +1012,47 @@ async function doResend(){
   }
 }
 
+// ── THEME TOGGLE ─────────────────────────────────────────────────────────────
+function toggleTheme(){
+  const html = document.documentElement;
+  const btn  = document.getElementById('themeToggle');
+  const isLight = html.getAttribute('data-theme') === 'light';
+  if(isLight){
+    html.removeAttribute('data-theme');
+    btn.textContent = '🌙';
+    btn.title = 'Switch to light mode';
+    localStorage.setItem('engineiq-theme','dark');
+  } else {
+    html.setAttribute('data-theme','light');
+    btn.textContent = '☀️';
+    btn.title = 'Switch to dark mode';
+    localStorage.setItem('engineiq-theme','light');
+  }
+}
+
+// apply saved theme on page load
+(function(){
+  const saved = localStorage.getItem('engineiq-theme');
+  if(saved === 'light'){
+    document.documentElement.setAttribute('data-theme','light');
+    // update button after DOM loads
+    window.addEventListener('DOMContentLoaded', ()=>{
+      const btn = document.getElementById('themeToggle');
+      if(btn){ btn.textContent='☀️'; btn.title='Switch to dark mode'; }
+    });
+  }
+})();
+
 async function doGoogleAuth(){
   // disable both google buttons to prevent double click
+  // Show processing overlay
+  const authBox = document.getElementById('authBox');
+  const oauthProc = document.getElementById('oauthProcessing');
+  if(authBox) authBox.style.display = 'none';
+  if(oauthProc){ oauthProc.style.display = 'flex'; }
   ['loginGoogleBtn','signupGoogleBtn'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el){ el.disabled=true; el.textContent='Redirecting to Google…'; }
+    if(el){ el.disabled=true; }
   });
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
@@ -959,10 +1062,14 @@ async function doGoogleAuth(){
     }
   });
   if(error){
+    const authBox2 = document.getElementById('authBox');
+    const oauthProc2 = document.getElementById('oauthProcessing');
+    if(authBox2) authBox2.style.display = '';
+    if(oauthProc2) oauthProc2.style.display = 'none';
     showMsg('loginMsg', error.message, 'error');
     ['loginGoogleBtn','signupGoogleBtn'].forEach(id=>{
       const el=document.getElementById(id);
-      if(el){ el.disabled=false; el.innerHTML=el.innerHTML.replace('Redirecting to Google…','Continue with Google'); }
+      if(el){ el.disabled=false; }
     });
   }
   // If no error, browser will redirect to Google — no further action needed
@@ -1039,21 +1146,41 @@ function showMainSite(user){
 
 // ── CHECK SESSION ON LOAD ─────────────────────────────────────────────────────
 window.addEventListener('load', async ()=>{
-  const { data: { session } } = await sb.auth.getSession();
-  if(session && session.user){
-    showMainSite(session.user);
+
+  // Handle OAuth / email confirmation redirect — token comes back in the URL hash
+  // e.g. https://site.com/#access_token=...&type=signup
+  const hash = window.location.hash;
+  if(hash && (hash.includes('access_token') || hash.includes('type=recovery'))){
+    // Supabase JS SDK automatically parses the hash and sets the session
+    // Give it a moment to process, then clean the URL
+    await new Promise(resolve => setTimeout(resolve, 500));
+    // Remove the token from the URL bar so it doesn't show to the user
+    history.replaceState(null, '', window.location.pathname);
   }
+
+  // Set up auth state listener FIRST before getSession so we don't miss events
   sb.auth.onAuthStateChange((event, session)=>{
     if(event === 'SIGNED_IN' && session){
-      if(document.getElementById('authOverlay').style.display !== 'none'){
-        showMainSite(session.user);
-      }
+      // Always show main site on sign in regardless of current view state
+      showMainSite(session.user);
     }
     if(event === 'SIGNED_OUT'){
       document.getElementById('mainSite').style.display    = 'none';
       document.getElementById('authOverlay').style.display = 'flex';
+      if(simInterval){ clearInterval(simInterval); simInterval=null; chartsReady=false; }
+    }
+    if(event === 'TOKEN_REFRESHED' && session){
+      // Session refreshed silently — just update the email display
+      const emailEl = document.getElementById('navUserEmail');
+      if(emailEl && session.user) emailEl.textContent = session.user.email || '';
     }
   });
+
+  // Now check for existing session (covers page refresh while logged in)
+  const { data: { session } } = await sb.auth.getSession();
+  if(session && session.user){
+    showMainSite(session.user);
+  }
 });
 
 // ── CHARTS & SIMULATION (init only after main site shown) ─────────────────────
