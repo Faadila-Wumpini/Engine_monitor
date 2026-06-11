@@ -1240,9 +1240,21 @@ function showMainSite(user){
 // ── CHECK SESSION ON LOAD ─────────────────────────────────────────────────────
 window.addEventListener('load', async ()=>{
 
-  // Set up auth state listener FIRST — catches PKCE code exchange and email confirmation
+  // Show spinner immediately if we have a ?code= param (PKCE OAuth redirect)
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasCode = urlParams.has('code');
+  if(hasCode){
+    const authBox  = document.getElementById('authBox');
+    const oauthProc= document.getElementById('oauthProcessing');
+    if(authBox)    authBox.style.display   = 'none';
+    if(oauthProc)  oauthProc.style.display = 'flex';
+  }
+
+  // Set up auth state listener
   sb.auth.onAuthStateChange((event, session)=>{
     if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
+      // Clean URL then show dashboard
+      history.replaceState(null, '', window.location.pathname);
       showMainSite(session.user);
     }
     if(event === 'SIGNED_OUT'){
@@ -1252,23 +1264,25 @@ window.addEventListener('load', async ()=>{
     }
   });
 
-  // PKCE: if URL contains ?code= parameter, Supabase SDK exchanges it for a session automatically
-  // detectSessionInUrl:true handles this — we just need to wait for onAuthStateChange to fire
-  // Also handles existing sessions on page refresh
-  const urlParams = new URLSearchParams(window.location.search);
-  if(urlParams.has('code')){
-    // PKCE code exchange in progress — SDK will fire SIGNED_IN via onAuthStateChange
-    // Show spinner while it processes
-    const authBox = document.getElementById('authBox');
-    const oauthProc = document.getElementById('oauthProcessing');
-    if(authBox) authBox.style.display = 'none';
-    if(oauthProc) oauthProc.style.display = 'flex';
-    // Clean the URL after a short delay
-    setTimeout(()=> history.replaceState(null,'',window.location.pathname), 1000);
-    return; // onAuthStateChange will call showMainSite
+  if(hasCode){
+    // PKCE code exchange — manually call getSession to trigger the exchange
+    // The SDK will process the code, set the session, and fire SIGNED_IN
+    const { data: { session }, error } = await sb.auth.getSession();
+    if(session && session.user){
+      history.replaceState(null, '', window.location.pathname);
+      showMainSite(session.user);
+    } else if(error){
+      // Exchange failed — show login screen with error
+      const authBox  = document.getElementById('authBox');
+      const oauthProc= document.getElementById('oauthProcessing');
+      if(authBox)   authBox.style.display   = '';
+      if(oauthProc) oauthProc.style.display = 'none';
+      showMsg('loginMsg', 'Google sign-in failed. Please try again.', 'error');
+    }
+    return;
   }
 
-  // No code param — check for existing session (normal page load / refresh)
+  // Normal page load — check for existing session
   const { data: { session } } = await sb.auth.getSession();
   if(session && session.user){
     showMainSite(session.user);
