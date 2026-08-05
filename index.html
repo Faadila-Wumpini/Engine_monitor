@@ -7,10 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#080808;--s1:#101010;--s2:#161616;--border:#1e1e1e;--border2:#2a2a2a;
-  --acc:#e8ff47;--acc2:#ff6b35;--green:#39ff7a;--red:#ff3f3f;--amber:#ffb545;--blue:#7eb8ff;
+  --acc:#2dd4bf;--acc2:#ff6b35;--green:#39ff7a;--red:#ff3f3f;--amber:#ffb545;--blue:#7eb8ff;
   --text:#f0f0f0;--muted:#555;--muted2:#888;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -36,10 +37,10 @@ section{padding:6rem 3rem}
 
 /* HERO */
 #hero{min-height:100vh;display:grid;grid-template-columns:1fr 420px;gap:3rem;align-items:center;padding:7rem 3rem 3rem;position:relative;overflow:hidden}
-.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(232,255,71,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(232,255,71,0.025) 1px,transparent 1px);background-size:50px 50px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 100%)}
-.hero-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(232,255,71,0.05) 0%,transparent 70%);top:5%;right:5%;pointer-events:none}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(45,212,191,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,0.025) 1px,transparent 1px);background-size:50px 50px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 100%)}
+.hero-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,0.05) 0%,transparent 70%);top:5%;right:5%;pointer-events:none}
 .hero-content{position:relative;z-index:1}
-.hero-tag{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;color:var(--acc);border:1px solid rgba(232,255,71,0.25);padding:0.35rem 0.9rem;margin-bottom:2rem}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;color:var(--acc);border:1px solid rgba(45,212,191,0.25);padding:0.35rem 0.9rem;margin-bottom:2rem}
 .hero-tag::before{content:'';width:5px;height:5px;background:var(--acc);border-radius:50%;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}
 .hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,9vw,7rem);line-height:0.9;margin-bottom:1.5rem}
@@ -134,6 +135,25 @@ section{padding:6rem 3rem}
 .history-table tr:last-child td{border-bottom:none}
 .full-width{grid-column:1/-1}
 
+/* MONITOR LOGIN GATE */
+.login-gate{max-width:380px;margin:2rem auto;background:var(--bg);border:1px solid var(--border);padding:2rem;text-align:center}
+.login-gate p{font-size:0.8rem;color:var(--muted2);margin-bottom:1.5rem;line-height:1.6}
+.login-field{margin-bottom:0.85rem;text-align:left}
+.login-field label{display:block;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:0.35rem}
+.login-field input{width:100%;background:var(--s2);border:1px solid var(--border2);color:var(--text);padding:0.6rem 0.75rem;font-family:'DM Mono',monospace;font-size:0.8rem}
+.login-field input:focus{outline:none;border-color:var(--acc)}
+.login-error{color:var(--red);font-family:'DM Mono',monospace;font-size:0.68rem;margin-top:0.75rem;min-height:1em}
+.login-btn{width:100%;margin-top:0.5rem;font-family:'DM Mono',monospace;font-size:0.75rem;padding:0.8rem;background:var(--acc);color:#000;border:none;cursor:pointer;letter-spacing:0.05em;transition:background 0.2s}
+.login-btn:hover{background:#fff}
+.login-btn:disabled{opacity:0.5;cursor:default}
+.login-divider{display:flex;align-items:center;gap:0.75rem;margin:1rem 0;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--border2)}
+.login-btn-google{width:100%;font-family:'DM Mono',monospace;font-size:0.75rem;padding:0.75rem;background:transparent;color:var(--text);border:1px solid var(--border2);cursor:pointer;letter-spacing:0.02em;transition:all 0.2s}
+.login-btn-google:hover{border-color:var(--acc);color:var(--acc)}
+.monitor-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted2)}
+.logout-link{color:var(--muted2);cursor:pointer;text-decoration:underline;background:none;border:none;font-family:'DM Mono',monospace;font-size:0.65rem}
+.logout-link:hover{color:var(--acc)}
+
 /* ARCHITECTURE */
 #arch{padding:6rem 3rem}
 .arch-flow{display:flex;border:1px solid var(--border);margin-top:2rem}
@@ -158,7 +178,7 @@ section{padding:6rem 3rem}
 .team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;max-width:560px}
 .team-card{background:var(--s1);border:1px solid var(--border);padding:1.5rem;transition:border-color 0.3s}
 .team-card:hover{border-color:var(--acc)}
-.tc-init{width:40px;height:40px;background:rgba(232,255,71,0.07);border:1px solid rgba(232,255,71,0.18);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:var(--acc);margin-bottom:0.75rem}
+.tc-init{width:40px;height:40px;background:rgba(45,212,191,0.07);border:1px solid rgba(45,212,191,0.18);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:var(--acc);margin-bottom:0.75rem}
 .tc-name{font-size:0.88rem;font-weight:500;margin-bottom:0.2rem}
 .tc-role{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted)}
 .supervisor-box{margin-top:1.5rem;border:1px solid var(--border);padding:1.25rem;max-width:560px}
@@ -281,8 +301,8 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
       <div class="step-n">02</div>
       <div class="step-icon">📡</div>
       <div class="step-title">Transmit</div>
-      <p class="step-desc">The ESP32 microcontroller packages sensor data as JSON and publishes it over Wi-Fi using lightweight MQTT.</p>
-      <div class="step-tech">ESP32 · MQTT · Wi-Fi</div>
+      <p class="step-desc">The ESP32 microcontroller packages sensor data as JSON and sends it as BLE notifications directly to a connected laptop or phone — no Wi-Fi router needed.</p>
+      <div class="step-tech">ESP32 · Bluetooth LE</div>
     </div>
     <div class="step">
       <div class="step-n">03</div>
@@ -342,7 +362,31 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   <h2 class="s-title reveal">Engine Health Monitor</h2>
   <p class="s-sub reveal">Real-time anomaly detection — powered by Isolation Forest ML model trained on 9,500 normal engine readings.</p>
 
-  <div class="monitor-grid">
+  <!-- Login gate — the monitor grid below only renders once signed in -->
+  <div class="login-gate reveal" id="monitorLoginGate">
+    <div class="mon-title">// Sign in required</div>
+    <p>This dashboard shows live engine telemetry. Sign in with your EngineIQ account to view it.</p>
+    <form id="monitorLoginForm">
+      <div class="login-field">
+        <label for="monitorEmail">Email</label>
+        <input type="email" id="monitorEmail" autocomplete="username" required>
+      </div>
+      <div class="login-field">
+        <label for="monitorPassword">Password</label>
+        <input type="password" id="monitorPassword" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="login-btn" id="monitorLoginBtn">Log in</button>
+      <div class="login-error" id="monitorLoginError"></div>
+    </form>
+    <div class="login-divider"><span>or</span></div>
+    <button type="button" class="login-btn-google" id="monitorGoogleBtn">Continue with Google</button>
+  </div>
+
+  <div class="monitor-grid" id="monitorContent" style="display:none">
+    <div class="full-width monitor-topbar">
+      <span id="monitorUserEmail"></span>
+      <button class="logout-link" id="monitorLogoutBtn">Log out</button>
+    </div>
     <!-- Status Card -->
     <div class="mon-card reveal">
       <div class="mon-title">// Current Status</div>
@@ -392,7 +436,7 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
 
     <!-- Severity Distribution -->
     <div class="mon-card full-width reveal">
-      <div class="mon-title">// Severity Distribution — Current Session</div>
+      <div class="mon-title">// Severity Distribution — All-Time</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:0.75rem">
         <div class="stat-box" style="border-color:rgba(57,255,122,0.2)"><div class="sb-val" id="countNormal" style="color:var(--green)">0</div><div class="sb-lbl">Normal</div></div>
         <div class="stat-box" style="border-color:rgba(255,181,69,0.2)"><div class="sb-val" id="countLow" style="color:var(--amber)">0</div><div class="sb-lbl">Low</div></div>
@@ -444,9 +488,9 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
       <div class="al-name">Network</div>
       <div class="al-items">
         <div class="al-item">ESP32 Microcontroller</div>
-        <div class="al-item">Wi-Fi 802.11 b/g/n</div>
-        <div class="al-item">MQTT Publisher</div>
-        <div class="al-item">Mosquitto Broker</div>
+        <div class="al-item">Bluetooth Low Energy (BLE)</div>
+        <div class="al-item">GATT Notify Characteristic</div>
+        <div class="al-item">Bleak BLE Client</div>
       </div>
     </div>
     <div class="arch-layer">
@@ -490,18 +534,16 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
     <div class="stack-cat">
       <div class="scat-title">Machine Learning & Backend</div>
       <div class="scat-items">
-        <div class="scat-item">Python 3.10+</div>
+        <div class="scat-item">Python 3.13</div>
         <div class="scat-item">Scikit-learn (Isolation Forest)</div>
-        <div class="scat-item">TensorFlow / Keras (LSTM AE)</div>
         <div class="scat-item">NumPy · Pandas · SciPy</div>
-        <div class="scat-item">Paho-MQTT</div>
+        <div class="scat-item">Bleak (BLE Client)</div>
       </div>
     </div>
     <div class="stack-cat">
       <div class="scat-title">Communication & UI</div>
       <div class="scat-items">
-        <div class="scat-item">MQTT Protocol</div>
-        <div class="scat-item">Eclipse Mosquitto Broker</div>
+        <div class="scat-item">Bluetooth LE (GATT)</div>
         <div class="scat-item">Streamlit Dashboard</div>
         <div class="scat-item">Supabase (PostgreSQL)</div>
         <div class="scat-item">Supabase Auth (JWT)</div>
@@ -546,62 +588,22 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
 const heroData = Array.from({length:40},()=>(Math.random()*0.03-0.015+0.994));
 const heroChart = new Chart(document.getElementById('heroChart'),{
   type:'line',
-  data:{labels:Array(40).fill(''),datasets:[{data:heroData,borderColor:'#e8ff47',borderWidth:1.5,fill:true,backgroundColor:'rgba(232,255,71,0.04)',pointRadius:0,tension:0.4}]},
+  data:{labels:Array(40).fill(''),datasets:[{data:heroData,borderColor:'#2dd4bf',borderWidth:1.5,fill:true,backgroundColor:'rgba(45,212,191,0.04)',pointRadius:0,tension:0.4}]},
   options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}
 });
 
-// ── MONITOR CHARTS ────────────────────────────────────────────────────────────
-const monData   = Array.from({length:60},()=>(Math.random()*0.02-0.01+0.994));
-const scoreData = Array.from({length:60},()=>(-0.04-Math.random()*0.03));
-const monChart = new Chart(document.getElementById('monChart'),{
-  type:'line',
-  data:{labels:Array(60).fill(''),datasets:[{data:monData,borderColor:'#e8ff47',borderWidth:1.5,fill:true,backgroundColor:'rgba(232,255,71,0.04)',pointRadius:0,tension:0.3}]},
-  options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false,min:0.85,max:1.1}}}
-});
-const scoreChart = new Chart(document.getElementById('scoreChart'),{
-  type:'line',
-  data:{labels:Array(60).fill(''),datasets:[
-    {data:scoreData,borderColor:'#e8ff47',borderWidth:1.5,fill:true,backgroundColor:'rgba(232,255,71,0.04)',pointRadius:0,tension:0.3,label:'Score'},
-    {data:Array(60).fill(-0.50),borderColor:'#ff3f3f',borderWidth:1,borderDash:[4,4],pointRadius:0,label:'Threshold'}
-  ]},
-  options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:true,min:-0.8,max:0.1,ticks:{display:false},grid:{color:'rgba(255,255,255,0.03)'},border:{display:false}}}}
-});
-
-// ── SIMULATION STATE ──────────────────────────────────────────────────────────
-let windowCount=0,anomalyCount=0,normalCount=0,lowCount=0,medCount=0,highCount=0;
-let anomalyTimer=0;
-let anomalyMode=false;
-const historyRows=[];
-
-function getSeverity(score){
-  if(score>-0.50) return 'NORMAL';
-  if(score>-0.52) return 'LOW';
-  if(score>-0.55) return 'MEDIUM';
-  return 'HIGH';
-}
-function getSevClass(s){return{NORMAL:'sev-normal',LOW:'sev-low',MEDIUM:'sev-med',HIGH:'sev-high'}[s]}
-function getScoreClass(s){return{NORMAL:'score-normal',LOW:'score-low',MEDIUM:'score-med',HIGH:'score-high'}[s]}
-function getSevColour(s){return{NORMAL:'#39ff7a',LOW:'#ffb545',MEDIUM:'#ff6b35',HIGH:'#ff3f3f'}[s]}
-
-function updateHistory(time,score,severity){
-  historyRows.unshift({time,score,severity});
-  if(historyRows.length>6) historyRows.pop();
-  const tbody=document.getElementById('historyBody');
-  tbody.innerHTML=historyRows.map(r=>`
-    <tr>
-      <td>${r.time}</td>
-      <td style="color:${getSevColour(r.severity)}">${r.score.toFixed(4)}</td>
-      <td><span style="color:${getSevColour(r.severity)}">${r.severity}</span></td>
-    </tr>`).join('');
-}
-
-// ── MAIN SIMULATION LOOP ──────────────────────────────────────────────────────
+// ── HERO PREVIEW LOOP ─────────────────────────────────────────────────────────
+// Decorative marketing animation only — this is the public hero card above
+// the fold, not the authenticated monitor. It has never been wired to real
+// sensor data and isn't claimed to be; the actual live data lives behind
+// the login gate in the #monitor section below.
+let heroAnomalyTimer=0, heroAnomalyMode=false;
 setInterval(()=>{
-  anomalyTimer++;
-  if(anomalyTimer%120===0){anomalyMode=true;setTimeout(()=>{anomalyMode=false},3500);}
+  heroAnomalyTimer++;
+  if(heroAnomalyTimer%120===0){heroAnomalyMode=true;setTimeout(()=>{heroAnomalyMode=false},3500);}
 
   let newVib,score,temp,ax,ay,az;
-  if(anomalyMode){
+  if(heroAnomalyMode){
     newVib=0.994+(Math.random()*0.12-0.06);
     score=-0.53-Math.random()*0.08;
     temp=(78+Math.random()*8).toFixed(1);
@@ -617,58 +619,192 @@ setInterval(()=>{
     az=newVib.toFixed(3);
   }
 
-  const severity=getSeverity(score);
-  const now=new Date().toTimeString().slice(0,8);
-  windowCount++;
-
-  // Update counts
-  if(severity==='NORMAL') normalCount++;
-  else if(severity==='LOW'){lowCount++;anomalyCount++;}
-  else if(severity==='MEDIUM'){medCount++;anomalyCount++;}
-  else{highCount++;anomalyCount++;}
-
-  // Update hero card
   heroData.shift();heroData.push(newVib);
   heroChart.data.datasets[0].data=[...heroData];heroChart.update('none');
   document.getElementById('hTemp').textContent=temp;
   document.getElementById('hScore').textContent=score.toFixed(4);
   document.getElementById('hX').textContent=ax;document.getElementById('hY').textContent=ay;document.getElementById('hZ').textContent=az;
-  if(anomalyMode){
+  if(heroAnomalyMode){
     document.getElementById('hStatus').className='status-badge s-alert';document.getElementById('hStatus').textContent='⚠ ANOMALY';
     document.getElementById('hLabel').textContent='Anomaly';document.getElementById('hBar').style.background='var(--red)';document.getElementById('hBar').style.width='15%';
   } else {
     document.getElementById('hStatus').className='status-badge s-normal';document.getElementById('hStatus').textContent='● NORMAL';
     document.getElementById('hLabel').textContent='Normal';document.getElementById('hBar').style.background='var(--green)';document.getElementById('hBar').style.width='85%';
   }
-
-  // Update monitor section
-  monData.shift();monData.push(newVib);
-  monChart.data.datasets[0].data=[...monData];monChart.update('none');
-  scoreData.shift();scoreData.push(score);
-  scoreChart.data.datasets[0].data=[...scoreData];scoreChart.update('none');
-
-  const scoreEl=document.getElementById('mScore');
-  scoreEl.textContent=score.toFixed(4);
-  scoreEl.className='big-score '+getScoreClass(severity);
-  const badge=document.getElementById('mBadge');
-  badge.textContent=anomalyMode?'⚠ '+severity:'● '+severity;
-  badge.className='severity-badge '+getSevClass(severity);
-  document.getElementById('mTemp').textContent=temp+'°C';
-  document.getElementById('mWindows').textContent=windowCount;
-  document.getElementById('mAnomalies').textContent=anomalyCount;
-  document.getElementById('mX').textContent=ax;document.getElementById('mY').textContent=ay;document.getElementById('mZ').textContent=az;
-
-  const banner=document.getElementById('alertBanner');
-  banner.style.display=anomalyMode?'block':'none';
-
-  document.getElementById('countNormal').textContent=normalCount;
-  document.getElementById('countLow').textContent=lowCount;
-  document.getElementById('countMed').textContent=medCount;
-  document.getElementById('countHigh').textContent=highCount;
-
-  if(anomalyMode) updateHistory(now,score,severity);
-
 },120);
+
+// ── MONITOR: AUTH + REAL DATA ─────────────────────────────────────────────────
+// Everything below is gated behind Supabase email/password auth and reads
+// real rows from anomaly_logs (written by inference.py's log_to_supabase()
+// for every scored window, not just anomalies).
+const SUPABASE_URL = "https://vpudvhanmyggzimwcgqo.supabase.co";
+// Public 'anon' key — safe client-side, only grants what Supabase Row Level
+// Security allows. The sign-in gate below is the actual access control.
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwdWR2aGFubXlnZ3ppbXdjZ3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTA2MTQsImV4cCI6MjA5NjA4NjYxNH0.iXIR8-UE5SIaZfAY-Uc6-LaUzYkqfI4LdSY_71V9WQs";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const monChart = new Chart(document.getElementById('monChart'),{
+  type:'line',
+  data:{labels:Array(60).fill(''),datasets:[{data:Array(60).fill(null),borderColor:'#2dd4bf',borderWidth:1.5,fill:true,backgroundColor:'rgba(45,212,191,0.04)',pointRadius:0,tension:0.3,spanGaps:true}]},
+  options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}
+});
+const scoreChart = new Chart(document.getElementById('scoreChart'),{
+  type:'line',
+  data:{labels:Array(60).fill(''),datasets:[
+    {data:Array(60).fill(null),borderColor:'#2dd4bf',borderWidth:1.5,fill:true,backgroundColor:'rgba(45,212,191,0.04)',pointRadius:0,tension:0.3,label:'Score',spanGaps:true},
+    {data:Array(60).fill(-0.50),borderColor:'#ff3f3f',borderWidth:1,borderDash:[4,4],pointRadius:0,label:'Threshold'}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:true,min:-0.8,max:0.1,ticks:{display:false},grid:{color:'rgba(255,255,255,0.03)'},border:{display:false}}}}
+});
+
+function getSevClass(s){return{NORMAL:'sev-normal',LOW:'sev-low',MEDIUM:'sev-med',HIGH:'sev-high'}[s]||'sev-normal'}
+function getScoreClass(s){return{NORMAL:'score-normal',LOW:'score-low',MEDIUM:'score-med',HIGH:'score-high'}[s]||'score-normal'}
+function getSevColour(s){return{NORMAL:'#39ff7a',LOW:'#ffb545',MEDIUM:'#ff6b35',HIGH:'#ff3f3f'}[s]||'#888'}
+
+// raw_window carries the per-column mean of whatever window inference.py
+// scored — its keys differ by source: real ESP32 readings ('live') use
+// accX/accY/accZ/temp; AI4I dataset replay ('simulation') has no physical
+// vibration axes, only the dataset's own columns (kept verbatim, spaces and
+// brackets included, since that's what inference.py writes).
+function axisFromRow(row, axis){
+  return row.source==='live' ? row.raw_window?.[axis] ?? null : null;
+}
+function tempFromRow(row){
+  if(row.source==='live') return row.raw_window?.temp ?? null;
+  const k = row.raw_window?.['Air temperature [K]'];
+  return k!=null ? k - 273.15 : null;
+}
+
+let pollTimer=null;
+
+async function fetchAndRender(){
+  const [rowsRes, totalRes, normalRes, lowRes, medRes, highRes] = await Promise.all([
+    sb.from('anomaly_logs').select('*').order('timestamp',{ascending:false}).limit(60),
+    sb.from('anomaly_logs').select('*',{count:'exact',head:true}),
+    sb.from('anomaly_logs').select('*',{count:'exact',head:true}).eq('severity','NORMAL'),
+    sb.from('anomaly_logs').select('*',{count:'exact',head:true}).eq('severity','LOW'),
+    sb.from('anomaly_logs').select('*',{count:'exact',head:true}).eq('severity','MEDIUM'),
+    sb.from('anomaly_logs').select('*',{count:'exact',head:true}).eq('severity','HIGH'),
+  ]);
+
+  if(rowsRes.error){
+    console.error('Supabase fetch failed:', rowsRes.error);
+    return;
+  }
+
+  const rows = rowsRes.data || [];
+  if(rows.length===0){
+    document.getElementById('historyBody').innerHTML =
+      '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:1rem">Waiting for inference.py to log data...</td></tr>';
+    return;
+  }
+
+  const chrono = [...rows].reverse();
+  const latest = rows[0];
+  const pad = arr => arr.length<60 ? [...Array(60-arr.length).fill(null),...arr] : arr;
+
+  scoreChart.data.datasets[0].data = pad(chrono.map(r=>r.anomaly_score));
+  scoreChart.update('none');
+  monChart.data.datasets[0].data = pad(chrono.map(r=>axisFromRow(r,'accZ')));
+  monChart.update('none');
+
+  const scoreEl = document.getElementById('mScore');
+  scoreEl.textContent = latest.anomaly_score.toFixed(4);
+  scoreEl.className = 'big-score '+getScoreClass(latest.severity);
+
+  const badge = document.getElementById('mBadge');
+  badge.textContent = (latest.is_anomaly?'⚠ ':'● ')+latest.severity;
+  badge.className = 'severity-badge '+getSevClass(latest.severity);
+
+  const temp = tempFromRow(latest);
+  document.getElementById('mTemp').textContent = temp!=null ? temp.toFixed(1)+'°C' : '—';
+  document.getElementById('mWindows').textContent = totalRes.count ?? rows.length;
+  document.getElementById('mAnomalies').textContent =
+    (lowRes.count||0) + (medRes.count||0) + (highRes.count||0);
+
+  const ax=axisFromRow(latest,'accX'), ay=axisFromRow(latest,'accY'), az=axisFromRow(latest,'accZ');
+  document.getElementById('mX').textContent = ax!=null ? ax.toFixed(3) : '—';
+  document.getElementById('mY').textContent = ay!=null ? ay.toFixed(3) : '—';
+  document.getElementById('mZ').textContent = az!=null ? az.toFixed(3) : '—';
+
+  document.getElementById('alertBanner').style.display = latest.is_anomaly ? 'block' : 'none';
+
+  document.getElementById('countNormal').textContent = normalRes.count || 0;
+  document.getElementById('countLow').textContent    = lowRes.count || 0;
+  document.getElementById('countMed').textContent    = medRes.count || 0;
+  document.getElementById('countHigh').textContent   = highRes.count || 0;
+
+  document.getElementById('historyBody').innerHTML = rows.slice(0,6).map(r=>`
+    <tr>
+      <td>${new Date(r.timestamp).toTimeString().slice(0,8)}</td>
+      <td style="color:${getSevColour(r.severity)}">${r.anomaly_score.toFixed(4)}</td>
+      <td><span style="color:${getSevColour(r.severity)}">${r.severity}</span></td>
+    </tr>`).join('');
+}
+
+const loginGate    = document.getElementById('monitorLoginGate');
+const monitorPanel = document.getElementById('monitorContent');
+const loginForm    = document.getElementById('monitorLoginForm');
+const loginBtn     = document.getElementById('monitorLoginBtn');
+const loginError   = document.getElementById('monitorLoginError');
+
+function showLoginGate(){
+  loginGate.style.display='block';
+  monitorPanel.style.display='none';
+  if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+}
+function enterMonitor(session){
+  loginGate.style.display='none';
+  monitorPanel.style.display='grid';
+  document.getElementById('monitorUserEmail').textContent = session.user.email;
+  fetchAndRender();
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(fetchAndRender, 4000);
+}
+
+loginForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  loginError.textContent='';
+  loginBtn.disabled=true;
+  loginBtn.textContent='Signing in...';
+  const email = document.getElementById('monitorEmail').value;
+  const password = document.getElementById('monitorPassword').value;
+  const {data,error} = await sb.auth.signInWithPassword({email,password});
+  loginBtn.disabled=false;
+  loginBtn.textContent='Log in';
+  if(error){ loginError.textContent = error.message; return; }
+  enterMonitor(data.session);
+});
+
+document.getElementById('monitorLogoutBtn').addEventListener('click', async ()=>{
+  await sb.auth.signOut();
+  showLoginGate();
+});
+
+// supabase-js defaults to PKCE + detectSessionInUrl:true, so it handles the
+// whole round trip itself — generates/stores the code_verifier, redirects
+// to Google, and on return exchanges the ?code=... in the URL for a session
+// automatically before this script even runs. No manual code exchange
+// needed here, unlike the Python/Streamlit side of this app.
+document.getElementById('monitorGoogleBtn').addEventListener('click', async ()=>{
+  loginError.textContent='';
+  // No #monitor fragment here on purpose: it would ride along inside the
+  // redirect_to value sent to Supabase and could fail the exact-match
+  // check against whatever plain URL you register in Authentication → URL
+  // Configuration → Redirect URLs. Land on the plain page instead — the
+  // session check on load still shows the monitor content either way, the
+  // user just scrolls down once.
+  const {error} = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname }
+  });
+  if(error) loginError.textContent = error.message;
+});
+
+sb.auth.getSession().then(({data})=>{
+  if(data.session) enterMonitor(data.session);
+  else showLoginGate();
+});
 
 // ── SCROLL REVEAL ─────────────────────────────────────────────────────────────
 const obs=new IntersectionObserver(entries=>{

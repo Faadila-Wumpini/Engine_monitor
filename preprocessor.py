@@ -32,14 +32,39 @@ def butterworth_filter(data, cutoff=0.3, fs=1.0, order=4):
     return filtered
 
 
+# ── VIBRATION-LIKE COLUMNS ────────────────────────────────────────────────────
+# These are the columns that carry the noisy, oscillatory signal a Butterworth
+# low-pass filter is actually meant for — real accelerometer axes on live BLE
+# data, or their closest proxies (Rotational speed, Torque) in the AI4I
+# dataset. Everything else (temperature, tool wear) is already slow-moving
+# and gets left unfiltered.
+VIBRATION_COLS_BLE  = ['accX', 'accY', 'accZ']
+VIBRATION_COLS_AI4I = ['Rotational speed [rpm]', 'Torque [Nm]']
+
+
+def infer_vibration_cols(columns) -> list:
+    """Pick the right vibration-column set based on what's actually present."""
+    cols = set(columns)
+    if any(c in cols for c in VIBRATION_COLS_BLE):
+        return [c for c in VIBRATION_COLS_BLE if c in cols]
+    return [c for c in VIBRATION_COLS_AI4I if c in cols]
+
+
 # ── STEP 2: FEATURE EXTRACTION ────────────────────────────────────────────────
 # Raw numbers are too noisy for ML. We summarise each window of data
 # into meaningful statistics that the model can actually learn from.
-def extract_features(window: pd.DataFrame) -> dict:
+def extract_features(window: pd.DataFrame, filter_cols: list = None, fs: float = 1.0) -> dict:
     """
     Given a window (chunk) of sensor readings, extract statistical features.
     Returns a dictionary of features.
-    
+
+    - filter_cols : columns to Butterworth-filter before computing stats
+                    (defaults to the vibration-like columns present in the
+                    window — see infer_vibration_cols()).
+    - fs          : sampling frequency of those columns, passed straight
+                    through to butterworth_filter (1.0 for the AI4I dataset,
+                    50.0 for live ESP32 vibration).
+
     For the AI4I dataset the columns are:
       - Air temperature [K]
       - Process temperature [K]
@@ -48,16 +73,22 @@ def extract_features(window: pd.DataFrame) -> dict:
       - Tool wear [min]
     """
     features = {}
-    
+
     # We extract features from each numeric column
     numeric_cols = window.select_dtypes(include=[np.number]).columns.tolist()
-    
+
+    if filter_cols is None:
+        filter_cols = infer_vibration_cols(numeric_cols)
+
     for col in numeric_cols:
         vals = window[col].values.astype(float)
-        
+
         if len(vals) == 0:
             continue
-        
+
+        if col in filter_cols:
+            vals = np.asarray(butterworth_filter(vals, fs=fs))
+
         col_clean = col.replace(' ', '_').replace('[', '').replace(']', '').replace('/', '_')
         
         # Basic statistics
@@ -85,29 +116,38 @@ def extract_features(window: pd.DataFrame) -> dict:
 # ── STEP 3: PROCESS A FULL DATAFRAME ─────────────────────────────────────────
 # This takes a big dataframe and processes it in chunks (windows).
 # Each window becomes one row of features for the ML model.
-def process_dataframe(df: pd.DataFrame, window_size: int = 50, step: int = 25) -> pd.DataFrame:
+def process_dataframe(df: pd.DataFrame, window_size: int = 50, step: int = 25,
+                       filter_cols: list = None, fs: float = 1.0) -> pd.DataFrame:
     """
     Slide a window across the dataframe and extract features from each window.
-    
+
     - window_size : how many rows per window (50 = 50 data points per chunk)
     - step        : how many rows to move forward each time (25 = 50% overlap)
-    
+    - filter_cols : columns to Butterworth-filter (defaults to whichever
+                    vibration-like columns are present — see
+                    infer_vibration_cols()).
+    - fs          : sampling frequency of filter_cols (1.0 for the AI4I
+                    dataset, 50.0 for live ESP32 vibration).
+
     Returns a DataFrame where each row = features from one window.
     """
     feature_rows = []
-    
+
     # Drop non-numeric / identifier columns that aren't useful for ML
     cols_to_drop = ['UDI', 'Product ID', 'Type', 'Machine failure',
                     'TWF', 'HDF', 'PWF', 'OSF', 'RNF']
-    
+
     # Only drop columns that actually exist in the dataframe
     cols_to_drop = [c for c in cols_to_drop if c in df.columns]
     df_features = df.drop(columns=cols_to_drop, errors='ignore')
-    
+
+    if filter_cols is None:
+        filter_cols = infer_vibration_cols(df_features.columns)
+
     # Slide the window
     for start in range(0, len(df_features) - window_size + 1, step):
         window = df_features.iloc[start : start + window_size]
-        features = extract_features(window)
+        features = extract_features(window, filter_cols=filter_cols, fs=fs)
         feature_rows.append(features)
     
     if not feature_rows:

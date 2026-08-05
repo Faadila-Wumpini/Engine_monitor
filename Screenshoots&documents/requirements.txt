@@ -5,6 +5,6 @@ scikit-learn
 matplotlib
 streamlit
 plotly
+paho-mqtt
 supabase
 joblib
-bleak

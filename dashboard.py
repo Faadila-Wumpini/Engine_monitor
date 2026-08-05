@@ -9,6 +9,7 @@
 # The dashboard reads from inference_results.csv which inference.py writes to.
 # Run inference.py in one terminal and dashboard.py in another.
 
+import os
 import time
 import joblib
 import numpy as np
@@ -18,6 +19,17 @@ import plotly.graph_objects as go
 from datetime import datetime
 from preprocessor import process_dataframe
 
+# ── PATH RESOLUTION ───────────────────────────────────────────────────────────
+# Anchor every data file to the folder this script lives in, NOT to whatever
+# directory the terminal happens to be in when you run `streamlit run dashboard.py`.
+# Without this, dashboard.py and inference.py can silently read/write two
+# different inference_results.csv files if launched from different terminals,
+# which sends the dashboard into demo mode even while inference.py is running fine.
+BASE_DIR          = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH        = os.path.join(BASE_DIR, 'model.pkl')
+DATASET_PATH      = os.path.join(BASE_DIR, 'ai4i2020.csv')
+RESULTS_PATH      = os.path.join(BASE_DIR, 'inference_results.csv')
+
 # ── PAGE CONFIG ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="EngineIQ — Live Monitor",
@@ -25,6 +37,97 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ── SUPABASE AUTH ─────────────────────────────────────────────────────────────
+# Same project inference.py logs to. This is the public 'anon' key — safe to
+# ship client-side, it only grants what Supabase Row Level Security allows.
+# The actual access control is the sign-in gate below, not the key itself.
+SUPABASE_URL = "https://vpudvhanmyggzimwcgqo.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwdWR2aGFubXlnZ3ppbXdjZ3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTA2MTQsImV4cCI6MjA5NjA4NjYxNH0.iXIR8-UE5SIaZfAY-Uc6-LaUzYkqfI4LdSY_71V9WQs"
+
+# Where Supabase should send the browser back to after Google auth completes.
+# MUST exactly match an entry in Supabase → Authentication → URL
+# Configuration → Redirect URLs, or Google sign-in will fail with a
+# "redirect_to not allowed" error. Points at the deployed dashboard; switch
+# back to "http://localhost:8501" (and re-add that to Redirect URLs) when
+# testing locally.
+APP_URL = "https://enginemonitor.streamlit.app/"
+
+
+@st.cache_resource
+def get_supabase_client():
+    from supabase import create_client
+    # create_client() defaults to PKCE for OAuth: sign_in_with_oauth() below
+    # generates a code_verifier and holds it in this client's own in-memory
+    # storage, and exchange_code_for_session() reads it back on the redirect
+    # return. Because this client is @st.cache_resource-cached, it's the
+    # SAME object across reruns (needed for that verifier to survive the
+    # round trip to Google and back) but also shared across every visitor
+    # on this server process — two people mid-Google-sign-in at the exact
+    # same moment would clobber each other's verifier. Fine for a small
+    # single-user dissertation deployment; would need per-session storage
+    # (e.g. backed by st.session_state) for a real multi-user rollout.
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+def require_login():
+    """
+    Gate the entire dashboard behind Supabase auth (email/password or
+    Google). Renders a login form and calls st.stop() until sign-in
+    succeeds — every line below this call in the script simply never runs
+    for a visitor who hasn't authenticated, so there's no code path that
+    leaks data pre-login.
+    """
+    client = get_supabase_client()
+
+    # Landing back from Google: Supabase appends ?code=... to APP_URL.
+    code = st.query_params.get('code')
+    if code and not st.session_state.get('user_email'):
+        try:
+            result = client.auth.exchange_code_for_session({"auth_code": code})
+            st.session_state['user_email']   = result.user.email
+            st.session_state['access_token'] = result.session.access_token
+        except Exception as e:
+            st.session_state['oauth_error'] = str(e)
+        st.query_params.clear()
+        st.rerun()
+
+    if st.session_state.get('user_email'):
+        return
+
+    st.markdown("# 🔧 EngineIQ")
+    st.markdown("*Sign in to view the live engine monitor*")
+
+    with st.form("login_form"):
+        email     = st.text_input("Email")
+        password  = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Log in")
+
+    if submitted:
+        try:
+            result = client.auth.sign_in_with_password(
+                {"email": email, "password": password}
+            )
+            st.session_state['user_email']   = result.user.email
+            st.session_state['access_token'] = result.session.access_token
+            st.rerun()
+        except Exception as e:
+            st.error(f"Login failed: {e}")
+
+    if st.session_state.pop('oauth_error', None):
+        st.error("Google sign-in failed. Try again.")
+
+    st.divider()
+    oauth = client.auth.sign_in_with_oauth({
+        "provider": "google",
+        "options": {"redirect_to": APP_URL},
+    })
+    st.link_button("Continue with Google", oauth.url, use_container_width=True)
+
+    st.stop()
+
+
+require_login()
 
 # ── CUSTOM STYLING ────────────────────────────────────────────────────────────
 st.markdown("""
@@ -68,10 +171,26 @@ section[data-testid="stSidebar"] { background: #111111; border-right: 1px solid 
 def severity_colour(s):
     return {'NORMAL':'#39ff7a','LOW':'#ffb545','MEDIUM':'#ff6b35','HIGH':'#ff3f3f'}.get(s,'#888')
 
+def classify_severity(score, threshold):
+    """
+    Bucket a raw anomaly score into severity relative to the sensitivity
+    threshold. Mirrors inference.py's get_severity(), but takes the
+    threshold as a parameter — inference.py's severity/is_anomaly columns
+    are baked in at scoring time against a fixed threshold, so the sidebar
+    slider used to only move the chart's dashed line without changing what
+    anything downstream (metrics, distribution, history) actually counted
+    as an anomaly. Reclassifying here from the raw score is what makes the
+    slider real.
+    """
+    if score > threshold: return 'NORMAL'
+    if score > threshold - 0.02: return 'LOW'
+    if score > threshold - 0.05: return 'MEDIUM'
+    return 'HIGH'
+
 def load_results():
     """Load inference results if available."""
     try:
-        df = pd.read_csv('inference_results.csv')
+        df = pd.read_csv(RESULTS_PATH)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         return df
     except FileNotFoundError:
@@ -80,7 +199,7 @@ def load_results():
 def load_dataset_preview():
     """Load a preview of the raw dataset for the data explorer tab."""
     try:
-        return pd.read_csv('ai4i2020.csv')
+        return pd.read_csv(DATASET_PATH)
     except FileNotFoundError:
         return None
 
@@ -91,11 +210,19 @@ with st.sidebar:
     st.markdown("*IoT & ML Predictive Engine Monitor*")
     st.divider()
 
+    st.markdown(f"**Signed in as:** {st.session_state['user_email']}")
+    if st.button("Log out"):
+        get_supabase_client().auth.sign_out()
+        st.session_state.pop('user_email', None)
+        st.session_state.pop('access_token', None)
+        st.rerun()
+    st.divider()
+
     st.markdown("**Project Info**")
     st.markdown("""
     - **Group:** 11
     - **Dept:** Computer Science, KNUST
-    - **Supervisor:** Dr. Rosemary
+    - **Supervisor:** Dr. R.O.M Gyening
     - **Year:** 2025/2026
     """)
     st.divider()
@@ -103,8 +230,8 @@ with st.sidebar:
     st.markdown("**Model Settings**")
     threshold = st.slider(
         "Anomaly Threshold",
-        min_value=-0.30, max_value=0.0,
-        value=-0.10, step=0.01,
+        min_value=-0.70, max_value=-0.30,
+        value=-0.50, step=0.01,
         help="Scores below this are flagged as anomalies"
     )
 
@@ -120,19 +247,19 @@ with st.sidebar:
 
     st.markdown("**System Status**")
     try:
-        joblib.load('model.pkl')
+        joblib.load(MODEL_PATH)
         st.success("✓ Model loaded")
     except:
         st.error("✗ model.pkl not found — run train.py first")
 
     try:
-        pd.read_csv('ai4i2020.csv')
+        pd.read_csv(DATASET_PATH)
         st.success("✓ Dataset found")
     except:
         st.warning("⚠ ai4i2020.csv not found")
 
     try:
-        pd.read_csv('inference_results.csv')
+        pd.read_csv(RESULTS_PATH)
         st.success("✓ Inference running")
     except:
         st.info("ℹ Run inference.py to start")
@@ -162,22 +289,30 @@ with tab1:
     if results_df is None or len(results_df) == 0:
         st.info("⏳ Waiting for inference data... Run `python inference.py` in your terminal.")
         
-        # Show a demo with fake data so the dashboard looks good
+        # Show a demo with fake data so the dashboard looks good.
+        # IMPORTANT: samples are shuffled into timestamp order (not grouped
+        # normal-then-anomaly) so the "latest" row isn't structurally biased
+        # towards always being an anomaly — that was the original bug.
         st.markdown("### Preview (Demo mode — no live data yet)")
         np.random.seed(int(time.time()) % 100)
         demo_scores = np.concatenate([
-            np.random.normal(-0.04, 0.02, 80),   # normal
-            np.random.normal(-0.22, 0.05, 20),   # anomalies
+            np.random.normal(-0.45, 0.03, 80),   # normal   (matches real model scale)
+            np.random.normal(-0.58, 0.03, 20),   # anomalies
         ])
+        np.random.shuffle(demo_scores)
         demo_df = pd.DataFrame({
             'timestamp': pd.date_range(end=datetime.now(), periods=100, freq='s'),
             'score': demo_scores,
-            'severity': ['HIGH' if s < -0.25 else 'MEDIUM' if s < -0.15
-                         else 'LOW' if s < -0.10 else 'NORMAL' for s in demo_scores],
-            'is_anomaly': demo_scores < threshold,
             'actual_failure': np.random.choice([0,1], 100, p=[0.9,0.1])
         })
         results_df = demo_df
+
+    # Reclassify from the raw score against the current sensitivity
+    # threshold — applies to both real inference results and demo data, so
+    # the sidebar slider actually changes what's flagged, not just where
+    # the chart's dashed line is drawn.
+    results_df['severity']   = results_df['score'].apply(lambda s: classify_severity(s, threshold))
+    results_df['is_anomaly'] = results_df['score'] < threshold
 
     # ── STATUS BANNER ────────────────────────────────────────────────────────
     latest = results_df.iloc[-1]
@@ -203,7 +338,7 @@ with tab1:
     fpr_pct    = f"{anomalies/max(total,1)*100:.1f}%"
     high_count = int((results_df['severity'] == 'HIGH').sum())
 
-    col1.metric("Latest Score",     f"{latest_score:.4f}",  help="Lower = more anomalous. Threshold: -0.10")
+    col1.metric("Latest Score",     f"{latest_score:.4f}",  help="Lower = more anomalous. Threshold: -0.50")
     col2.metric("Current Status",   latest_severity)
     col3.metric("Anomalies Found",  f"{anomalies}/{total}", help="Windows flagged as anomalous")
     col4.metric("High Severity",    high_count,             help="Windows flagged as HIGH severity")
@@ -296,10 +431,14 @@ with tab1:
 # ── TAB 2: ANOMALY HISTORY ────────────────────────────────────────────────────
 with tab2:
     results_df2 = load_results()
-    
+
     if results_df2 is None:
         st.info("No inference results yet. Run `python inference.py` first.")
     else:
+        # Same reclassification as Tab 1, so "Anomalies only" / "HIGH only"
+        # filtering here respects the sidebar's sensitivity slider too.
+        results_df2['severity']   = results_df2['score'].apply(lambda s: classify_severity(s, threshold))
+        results_df2['is_anomaly'] = results_df2['score'] < threshold
         st.markdown(f"### Anomaly Event Log ({len(results_df2)} windows scored)")
         
         # Filter options
@@ -394,7 +533,7 @@ with tab4:
     ## IoT & ML-Based Predictive Car Engine Health Monitoring System
 
     **Group 11 — Department of Computer Science, KNUST, Kumasi**  
-    **Supervisor:** Dr. Rosemary | **Academic Year:** 2025/2026
+    **Supervisor:** Dr. R.O.M Gyening | **Academic Year:** 2025/2026
 
     ---
 
@@ -411,9 +550,9 @@ with tab4:
 
     ### System Architecture
     ```
-    SENSORS → ESP32 (MQTT) → Python Inference Engine → Streamlit Dashboard
-    MPU6050    Wi-Fi           Isolation Forest           Alert + Log
-    DS18B20    MQTT            Butterworth + FFT          Supabase DB
+    SENSORS → ESP32 (BLE) → Python Inference Engine → Streamlit Dashboard
+    MPU6050    Bluetooth LE     Isolation Forest           Alert + Log
+    DS18B20    GATT Notify      Butterworth + Features      Supabase DB
     ```
 
     ---
@@ -422,8 +561,8 @@ with tab4:
     | Layer | Technology |
     |---|---|
     | Hardware | ESP32, MPU6050, DS18B20 |
-    | Firmware | C++ / Arduino (PlatformIO) |
-    | Communication | MQTT (Mosquitto) |
+    | Firmware | C++ / Arduino (ESP32 BLE Arduino) |
+    | Communication | Bluetooth Low Energy (BLE) |
     | ML Model | Isolation Forest (scikit-learn) |
     | Processing | Python, NumPy, Pandas, SciPy |
     | Dashboard | Streamlit + Plotly |

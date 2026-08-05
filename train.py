@@ -170,7 +170,7 @@ def evaluate_model(model, X_normal_scaled, X_fault_scaled):
     return scores_normal, None
 
 
-def plot_results(scores_normal, scores_fault, threshold=-0.1):
+def plot_results(scores_normal, scores_fault, threshold=-0.50):
     """Plot anomaly score distributions so you can visualise the model."""
     print("── Generating score distribution plot ───────────────")
     
