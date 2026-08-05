@@ -1252,14 +1252,29 @@ window.addEventListener('load', async ()=>{
     if(oauthProc)  oauthProc.style.display = 'flex';
   }
 
-  // Set up auth state listener
+  // Set up auth state listener FIRST, before anything else touches sb.auth.
+  // detectSessionInUrl:true (see createClient options above) already
+  // exchanges ?code=... automatically — it starts doing this the instant
+  // createClient() runs, which is long before this 'load' handler fires, so
+  // by the time we get here the exchange may already be done (or already
+  // failed) and the code already stripped from the URL. onAuthStateChange
+  // is the one thing guaranteed to reflect the correct outcome regardless
+  // of that timing: per the SDK's contract it fires once immediately with
+  // the CURRENT session as INITIAL_SESSION when you register it, then again
+  // for any later change — so it can't miss the auto-exchange's result the
+  // way a manual getSession() call here previously could (that used to
+  // silently return {session:null, error:null} if the auto-exchange had
+  // already failed and cleaned up before this ran, leaving the page stuck
+  // on the login screen with no error shown at all).
+  let oauthSettled = false;
   sb.auth.onAuthStateChange((event, session)=>{
     if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
-      // Clean URL then show dashboard
+      oauthSettled = true;
       history.replaceState(null, '', window.location.pathname);
       showMainSite(session.user);
     }
     if(event === 'SIGNED_OUT'){
+      oauthSettled = true;
       document.getElementById('mainSite').style.display    = 'none';
       document.getElementById('authOverlay').style.display = 'flex';
       if(simInterval){ clearInterval(simInterval); simInterval=null; chartsReady=false; }
@@ -1268,20 +1283,19 @@ window.addEventListener('load', async ()=>{
   });
 
   if(hasCode){
-    // PKCE code exchange — manually call getSession to trigger the exchange
-    // The SDK will process the code, set the session, and fire SIGNED_IN
-    const { data: { session }, error } = await sb.auth.getSession();
-    if(session && session.user){
+    // Safety net: if we came back from Google but nothing above resolved
+    // the login within a few seconds, the automatic exchange failed
+    // silently — surface that instead of leaving the spinner (or a blank
+    // reversion to the login screen) with no explanation.
+    setTimeout(()=>{
+      if(oauthSettled) return;
       history.replaceState(null, '', window.location.pathname);
-      showMainSite(session.user);
-    } else if(error){
-      // Exchange failed — show login screen with error
       const authBox  = document.getElementById('authBox');
       const oauthProc= document.getElementById('oauthProcessing');
       if(authBox)   authBox.style.display   = '';
       if(oauthProc) oauthProc.style.display = 'none';
       showMsg('loginMsg', 'Google sign-in failed. Please try again.', 'error');
-    }
+    }, 6000);
     return;
   }
 
