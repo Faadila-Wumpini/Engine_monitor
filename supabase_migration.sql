@@ -13,7 +13,12 @@
 alter table anomaly_logs
   add column if not exists source text,
   add column if not exists raw_window jsonb,
-  add column if not exists is_anomaly boolean;
+  add column if not exists is_anomaly boolean,
+  -- Which physical ESP32 a 'live' reading came from (see the firmware's
+  -- DEVICE_ID constant) — null for 'simulation' rows, since those aren't
+  -- from any physical unit. Without this, multiple ESP32 units logging to
+  -- the same table would be indistinguishable from each other.
+  add column if not exists device_id text;
 
 -- acc_x_mean / acc_y_mean / acc_z_mean / temp_mean are only populated for
 -- source = 'live' now (they're meaningless for AI4I replay windows), so

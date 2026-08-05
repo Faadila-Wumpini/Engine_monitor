@@ -29,6 +29,13 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
+// ── DEVICE IDENTITY ────────────────────────────────────────────────────────────
+// CHANGE THIS before flashing a second/third/etc. unit — it's what lets the
+// system tell multiple ESP32s apart (advertised BLE name + tagged in every
+// reading sent). Two units both left as "ESP32-01" are indistinguishable to
+// inference.py and to anomaly_logs in Supabase.
+#define DEVICE_ID "ESP32-01"
+
 // ── PIN DEFINITIONS ───────────────────────────────────────────────────────────
 #define SDA_PIN   21
 #define SCL_PIN   22
@@ -115,7 +122,11 @@ void setup() {
 
   // ── Initialise BLE ────────────────────────────────────────────────────────
   Serial.println("── Initialising Bluetooth BLE ───────────────");
-  BLEDevice::init("EngineIQ_Sensor");  // This is the name that appears on your phone
+  // "EngineIQ_Sensor_" prefix is shared across every unit (inference.py scans
+  // for that prefix, not an exact name) — DEVICE_ID after it is what makes
+  // each physical ESP32 distinguishable, both here and in the readings below.
+  String bleName = String("EngineIQ_Sensor_") + DEVICE_ID;
+  BLEDevice::init(bleName.c_str());
 
   // Create BLE server
   pServer = BLEDevice::createServer();
@@ -139,8 +150,11 @@ void setup() {
   pAdvertising->setScanResponse(true);
   BLEDevice::startAdvertising();
 
-  Serial.println("  ✓ BLE advertising as 'EngineIQ_Sensor'");
-  Serial.println("  → Open your phone's Bluetooth and look for 'EngineIQ_Sensor'");
+  Serial.print("  ✓ BLE advertising as '");
+  Serial.print(bleName);
+  Serial.println("'");
+  Serial.print("  → Device ID tagged in every reading: ");
+  Serial.println(DEVICE_ID);
   Serial.println("\n── Waiting for connection ───────────────────\n");
 }
 
@@ -164,8 +178,8 @@ void loop() {
       // Build the JSON payload
       char payload[200];
       snprintf(payload, sizeof(payload),
-        "{\"accX\":%.4f,\"accY\":%.4f,\"accZ\":%.4f,\"temp\":%.2f,\"id\":%d}",
-        accX, accY, accZ, temperature, readingCount
+        "{\"accX\":%.4f,\"accY\":%.4f,\"accZ\":%.4f,\"temp\":%.2f,\"id\":%d,\"device_id\":\"%s\"}",
+        accX, accY, accZ, temperature, readingCount, DEVICE_ID
       );
 
       // Send via BLE notification

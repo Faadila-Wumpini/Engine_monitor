@@ -38,32 +38,44 @@ import os
 import time
 from datetime import datetime
 
-BASE_DIR         = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_PATH      = os.path.join(BASE_DIR, 'ble_baseline_normal.csv')
-BLE_DEVICE_NAME  = "EngineIQ_Sensor"
-CHAR_UUID        = "abcd1234-ab12-ab12-ab12-abcdef123456"
-BLE_SCAN_TIMEOUT = 8.0
+BASE_DIR          = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_PATH       = os.path.join(BASE_DIR, 'ble_baseline_normal.csv')
+# Every unit advertises as "EngineIQ_Sensor_<DEVICE_ID>" (see the firmware's
+# DEVICE_ID constant) — this is the shared prefix, not a full name, so
+# scanning finds any of them; --device targets one specifically.
+BLE_DEVICE_PREFIX = "EngineIQ_Sensor"
+CHAR_UUID         = "abcd1234-ab12-ab12-ab12-abcdef123456"
+BLE_SCAN_TIMEOUT  = 8.0
 
 
-async def collect(duration_seconds):
+async def collect(duration_seconds, device_id=None):
     try:
         from bleak import BleakClient, BleakScanner
     except ImportError:
         print("❌ bleak not installed. Run:  pip install bleak")
         return
 
+    def matches(device, advertisement_data):
+        name = device.name or ''
+        if not name.startswith(BLE_DEVICE_PREFIX):
+            return False
+        if device_id is None:
+            return True
+        return name == f"{BLE_DEVICE_PREFIX}_{device_id}"
+
+    label = f"'{BLE_DEVICE_PREFIX}_{device_id}'" if device_id else f"any '{BLE_DEVICE_PREFIX}_*' sensor"
     print("=" * 55)
     print("  BLE BASELINE COLLECTION")
-    print(f"  Scanning for '{BLE_DEVICE_NAME}'...")
+    print(f"  Scanning for {label}...")
     print("=" * 55)
 
-    device = await BleakScanner.find_device_by_name(
-        BLE_DEVICE_NAME, timeout=BLE_SCAN_TIMEOUT
-    )
+    device = await BleakScanner.find_device_by_filter(matches, timeout=BLE_SCAN_TIMEOUT)
 
     if device is None:
-        print(f"\n⚠ Could not find '{BLE_DEVICE_NAME}' nearby.")
+        print(f"\n⚠ Could not find a matching EngineIQ sensor nearby.")
         print("  Check the ESP32 is powered on and Bluetooth is enabled.")
+        if device_id:
+            print(f"  Check its DEVICE_ID matches '{device_id}', or drop --device to accept any unit.")
         return
 
     print(f"\n  ✓ Found: {device.name} [{device.address}]")
@@ -71,12 +83,13 @@ async def collect(duration_seconds):
 
     rows = []
     start_time = time.monotonic()
+    connected_device_id = device.name.replace(f'{BLE_DEVICE_PREFIX}_', '', 1) if device.name else 'unknown'
 
     file_exists = os.path.exists(OUTPUT_PATH)
     csv_file = open(OUTPUT_PATH, 'a', newline='')
     writer = csv.writer(csv_file)
     if not file_exists:
-        writer.writerow(['timestamp', 'accX', 'accY', 'accZ', 'temp'])
+        writer.writerow(['timestamp', 'accX', 'accY', 'accZ', 'temp', 'device_id'])
 
     async with BleakClient(device) as client:
         print(f"  ✓ Connected via Bluetooth!")
@@ -93,6 +106,7 @@ async def collect(duration_seconds):
                     float(payload.get('accY', 0)),
                     float(payload.get('accZ', 0)),
                     float(payload.get('temp', 0)),
+                    payload.get('device_id', connected_device_id),
                 ]
                 writer.writerow(row)
                 rows.append(row)
@@ -129,6 +143,10 @@ if __name__ == '__main__':
     )
     parser.add_argument('--minutes', type=float, default=10.0,
                          help='How many minutes to collect (default: 10)')
+    parser.add_argument('--device', type=str, default=None,
+                         help="Target a specific ESP32 by its DEVICE_ID (e.g. --device ESP32-02) "
+                              "when more than one EngineIQ sensor might be nearby. "
+                              "Omit to connect to whichever matching unit is found first.")
     args = parser.parse_args()
 
     print("\n╔═══════════════════════════════════════════╗")
@@ -136,4 +154,4 @@ if __name__ == '__main__':
     print("║  Group 11, KNUST                          ║")
     print("╚═══════════════════════════════════════════╝\n")
 
-    asyncio.run(collect(args.minutes * 60))
+    asyncio.run(collect(args.minutes * 60, device_id=args.device))

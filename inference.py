@@ -58,7 +58,11 @@ WINDOW_SIZE     = 50
 SIMULATE_DELAY  = 0.1       # seconds between simulated readings
 
 # Bluetooth settings — must match sensor_node_bluetooth.ino
-BLE_DEVICE_NAME = "EngineIQ_Sensor"
+# Every unit advertises as "EngineIQ_Sensor_<DEVICE_ID>" (see the firmware's
+# DEVICE_ID constant) — this is the shared prefix, not a full name, so
+# scanning finds any of them; --device targets one specifically when more
+# than one is nearby.
+BLE_DEVICE_PREFIX = "EngineIQ_Sensor"
 SERVICE_UUID    = "12345678-1234-1234-1234-123456789abc"
 CHAR_UUID       = "abcd1234-ab12-ab12-ab12-abcdef123456"
 BLE_SCAN_TIMEOUT = 8.0      # seconds to scan before giving up
@@ -147,17 +151,21 @@ def get_severity(score, threshold):
 # 'source' distinguishes AI4I-replay windows from real ESP32 windows, since
 # they carry different physical readings (acc_x/y/z/temp columns only make
 # sense for 'live'; 'raw_window' carries the mean of every column for either
-# mode so nothing is mislabeled). Requires the 'source' and 'raw_window'
-# (jsonb) columns to exist on anomaly_logs — see migration note in README/
-# commit message if they're missing; insert failures are caught and logged,
-# not fatal, so older schemas just lose history logging instead of crashing.
-def log_to_supabase(client, result, window_df, source):
+# mode so nothing is mislabeled). 'device_id' (live only — see the firmware's
+# DEVICE_ID constant) is what makes readings from multiple ESP32 units
+# distinguishable in this table instead of an undifferentiated pile. Requires
+# the 'source', 'raw_window', and 'device_id' columns to exist on
+# anomaly_logs — see migration note in README/commit message if they're
+# missing; insert failures are caught and logged, not fatal, so older
+# schemas just lose history logging instead of crashing.
+def log_to_supabase(client, result, window_df, source, device_id=None):
     if client is None:
         return
     try:
         record = {
             "timestamp"    : result['timestamp'],
             "source"       : source,          # 'simulation' or 'live'
+            "device_id"    : device_id,       # which physical ESP32, if 'live'
             "anomaly_score": result['score'],
             "severity"     : result['severity'],
             "is_anomaly"   : result['is_anomaly'],
@@ -325,16 +333,39 @@ def run_simulation(model, scaler, supabase):
         print(f"{'='*55}")
 
 
+async def scan_for_sensor(device_id=None):
+    """
+    Scan for an ESP32 advertising as "EngineIQ_Sensor_<DEVICE_ID>" (see the
+    firmware's DEVICE_ID constant — change it before flashing a second unit).
+    Matches by prefix, not exact name, so multiple units can coexist and be
+    told apart; pass device_id to target one specifically instead of
+    connecting to whichever matching device the scan happens to find first.
+    """
+    from bleak import BleakScanner
+
+    def matches(device, advertisement_data):
+        name = device.name or ''
+        if not name.startswith(BLE_DEVICE_PREFIX):
+            return False
+        if device_id is None:
+            return True
+        return name == f"{BLE_DEVICE_PREFIX}_{device_id}"
+
+    return await BleakScanner.find_device_by_filter(matches, timeout=BLE_SCAN_TIMEOUT)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # MODE 2 — LIVE BLUETOOTH
 # ══════════════════════════════════════════════════════════════════════════════
-async def run_bluetooth(ai4i_model, ai4i_scaler, supabase):
+async def run_bluetooth(ai4i_model, ai4i_scaler, supabase, device_id=None):
     """Scan for ESP32 via BLE and score live sensor data using the
     BLE-specific model (trained on real accX/accY/accZ/temp data via
     train_bluetooth.py) — NOT the AI4I model, which has never seen this
-    feature space and cannot meaningfully score it."""
+    feature space and cannot meaningfully score it. device_id, if given,
+    targets one specific unit (see scan_for_sensor) when more than one
+    EngineIQ sensor might be nearby."""
     try:
-        from bleak import BleakClient, BleakScanner
+        from bleak import BleakClient
     except ImportError:
         print("❌ bleak not installed. Run:  pip install bleak")
         print("   Falling back to simulation mode...\n")
@@ -360,20 +391,21 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase):
 
     print("=" * 55)
     print("  MODE: LIVE BLUETOOTH")
-    print(f"  Scanning for '{BLE_DEVICE_NAME}'...")
+    print(f"  Scanning for '{BLE_DEVICE_PREFIX}_{device_id}'..." if device_id
+          else f"  Scanning for any '{BLE_DEVICE_PREFIX}_*' sensor...")
     print("=" * 55)
 
-    # Scan for the ESP32
-    device = await BleakScanner.find_device_by_name(
-        BLE_DEVICE_NAME, timeout=BLE_SCAN_TIMEOUT
-    )
+    device = await scan_for_sensor(device_id)
 
     if device is None:
-        print(f"\n⚠ Could not find '{BLE_DEVICE_NAME}' nearby.")
+        print(f"\n⚠ Could not find a matching EngineIQ sensor nearby.")
         print("  Possible reasons:")
         print("  → ESP32 is not powered on")
         print("  → Bluetooth is off on your laptop")
         print("  → Wrong firmware uploaded to ESP32")
+        if device_id:
+            print(f"  → No unit advertising as '{BLE_DEVICE_PREFIX}_{device_id}' specifically "
+                  f"(check its DEVICE_ID, or drop --device to accept any unit)")
         print("\n  Falling back to SIMULATION mode...\n")
         run_simulation(ai4i_model, ai4i_scaler, supabase)
         return
@@ -386,6 +418,11 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase):
     async with BleakClient(device) as client:
         print(f"  ✓ Connected via Bluetooth!\n")
 
+        # Falls back to the advertised BLE name (minus the shared prefix) if
+        # an individual payload is missing device_id — e.g. older firmware
+        # that hasn't been reflashed with the DEVICE_ID field yet.
+        fallback_device_id = device.name.replace(f'{BLE_DEVICE_PREFIX}_', '', 1) if device.name else 'unknown'
+
         def handle_notification(sender, data):
             nonlocal buffer
             try:
@@ -396,6 +433,7 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase):
                     'accZ': float(payload.get('accZ', 0)),
                     'temp': float(payload.get('temp', 0)),
                 }
+                connected_device_id = payload.get('device_id', fallback_device_id)
                 buffer.append(reading)
 
                 if len(buffer) >= WINDOW_SIZE:
@@ -405,7 +443,8 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase):
 
                     print_result(result)
 
-                    log_to_supabase(supabase, result, window_df, source='live')
+                    log_to_supabase(supabase, result, window_df, source='live',
+                                     device_id=connected_device_id)
                     save_result(result)
 
             except Exception as e:
@@ -423,28 +462,28 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase):
 
 
 # ── AUTO-DETECT MODE ──────────────────────────────────────────────────────────
-async def auto_detect(model, scaler, supabase):
+async def auto_detect(model, scaler, supabase, device_id=None):
     """
-    Tries to find the ESP32 via Bluetooth.
+    Tries to find an EngineIQ ESP32 via Bluetooth (optionally a specific
+    device_id — see scan_for_sensor).
     If found → runs live Bluetooth mode.
     If not found → falls back to simulation mode.
     """
     try:
-        from bleak import BleakScanner
+        import bleak  # noqa: F401 — just checking it's installed
     except ImportError:
         print("ℹ bleak not installed — running simulation mode.")
         print("  To enable Bluetooth: pip install bleak\n")
         run_simulation(model, scaler, supabase)
         return
 
-    print(f"  Scanning for ESP32 '{BLE_DEVICE_NAME}' ({BLE_SCAN_TIMEOUT}s)...")
-    device = await BleakScanner.find_device_by_name(
-        BLE_DEVICE_NAME, timeout=BLE_SCAN_TIMEOUT
-    )
+    label = f"'{BLE_DEVICE_PREFIX}_{device_id}'" if device_id else f"any '{BLE_DEVICE_PREFIX}_*' sensor"
+    print(f"  Scanning for {label} ({BLE_SCAN_TIMEOUT}s)...")
+    device = await scan_for_sensor(device_id)
 
     if device:
         print(f"  ✓ ESP32 found! Switching to LIVE BLUETOOTH mode.\n")
-        await run_bluetooth(model, scaler, supabase)
+        await run_bluetooth(model, scaler, supabase, device_id=device_id)
     else:
         print(f"  ℹ ESP32 not found. Switching to SIMULATION mode.\n")
         run_simulation(model, scaler, supabase)
@@ -459,6 +498,10 @@ if __name__ == '__main__':
                         help='Force simulation mode (use dataset, no hardware)')
     parser.add_argument('--live', action='store_true',
                         help='Force live Bluetooth mode (requires ESP32)')
+    parser.add_argument('--device', type=str, default=None,
+                        help="Target a specific ESP32 by its DEVICE_ID (e.g. --device ESP32-02) "
+                             "when more than one EngineIQ sensor might be nearby. "
+                             "Omit to connect to whichever matching unit is found first.")
     args = parser.parse_args()
 
     print("\n╔═══════════════════════════════════════════╗")
@@ -477,9 +520,9 @@ if __name__ == '__main__':
 
     elif args.live:
         # Force live Bluetooth
-        asyncio.run(run_bluetooth(model, scaler, supabase))
+        asyncio.run(run_bluetooth(model, scaler, supabase, device_id=args.device))
 
     else:
         # Auto-detect: try BLE first, fall back to simulation
         print("  Auto-detecting mode...\n")
-        asyncio.run(auto_detect(model, scaler, supabase))
+        asyncio.run(auto_detect(model, scaler, supabase, device_id=args.device))
