@@ -148,7 +148,6 @@ void setup() {
   // not an error. If a previously-unencrypted pairing to this device is
   // already saved from before this update, remove/forget it from the
   // OS's Bluetooth settings first so it re-pairs under the new settings.
-  BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
   BLESecurity* pSecurity = new BLESecurity();
   pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_BOND);
   pSecurity->setCapability(ESP_IO_CAP_NONE);
