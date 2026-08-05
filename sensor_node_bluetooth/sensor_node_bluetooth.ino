@@ -28,6 +28,7 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <BLESecurity.h>
 
 // ── DEVICE IDENTITY ────────────────────────────────────────────────────────────
 // CHANGE THIS before flashing a second/third/etc. unit — it's what lets the
@@ -128,6 +129,32 @@ void setup() {
   String bleName = String("EngineIQ_Sensor_") + DEVICE_ID;
   BLEDevice::init(bleName.c_str());
 
+  // ── BLE pairing + link encryption ─────────────────────────────────────────
+  // Without this, the SERVICE_UUID/SENSOR_CHAR_UUID above only identify the
+  // data stream — they don't restrict who can read it. Any BLE scanner in
+  // range could connect and read every notification in plain text. This
+  // requires pairing before the characteristic can be read/subscribed to,
+  // and encrypts the link once paired.
+  //
+  // "Just Works" mode (ESP_IO_CAP_NONE — no display or keyboard on this
+  // board to show/enter a PIN) — no visible confirmation step, but the
+  // link is genuinely encrypted, which is what actually matters here
+  // (stopping passive eavesdropping on the sensor data). It doesn't
+  // protect against a determined active man-in-the-middle attacker, which
+  // would need a display+keypad pairing method this hardware doesn't have.
+  //
+  // First connection after flashing this will trigger a normal OS
+  // Bluetooth pairing prompt on the laptop/phone side — that's expected,
+  // not an error. If a previously-unencrypted pairing to this device is
+  // already saved from before this update, remove/forget it from the
+  // OS's Bluetooth settings first so it re-pairs under the new settings.
+  BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
+  BLESecurity* pSecurity = new BLESecurity();
+  pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_BOND);
+  pSecurity->setCapability(ESP_IO_CAP_NONE);
+  pSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+  pSecurity->setRespEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+
   // Create BLE server
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -142,6 +169,10 @@ void setup() {
     BLECharacteristic::PROPERTY_NOTIFY  // NOTIFY means it pushes data automatically
   );
   pSensorChar->addDescriptor(new BLE2902());
+  // Actually enforces the pairing requirement above at the GATT level —
+  // without this, a device could still connect and subscribe unencrypted
+  // regardless of the security settings configured above.
+  pSensorChar->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED);
 
   // Start the service and start advertising
   pService->start();
