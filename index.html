@@ -6,28 +6,300 @@
 <title>EngineIQ — Predictive Engine Health Monitor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+/* ── DARK MODE (default) ── */
 :root{
-  --bg:#080808;--s1:#101010;--s2:#161616;--border:#1e1e1e;--border2:#2a2a2a;
-  --acc:#2dd4bf;--acc2:#ff6b35;--green:#39ff7a;--red:#ff3f3f;--amber:#ffb545;--blue:#7eb8ff;
-  --text:#f0f0f0;--muted:#555;--muted2:#888;
+  --bg:#0a0f1e;--s1:#111827;--s2:#1a2236;--border:#1e2d45;--border2:#243552;
+  --acc:#4ea8de;--acc2:#60c6f0;--green:#34d399;--red:#f87171;--amber:#fbbf24;--blue:#93c5fd;
+  --text:#e2e8f0;--muted:#4a5568;--muted2:#718096;
 }
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--s1:#ffffff;--s2:#e8eef5;--border:#c8d8e8;--border2:#b0c4d8;
+  --acc:#1a56db;--acc2:#0e7fc0;--green:#059669;--red:#dc2626;--amber:#d97706;--blue:#1a56db;
+  --text:#1e293b;--muted:#64748b;--muted2:#475569;
+}
+/* ── LIGHT MODE COMPONENT OVERRIDES ── */
+[data-theme="light"] nav{background:rgba(255,255,255,0.95);border-bottom:1px solid #c8d8e8;box-shadow:0 1px 12px rgba(26,86,219,0.08);}
+[data-theme="light"] .auth-box{background:#fff;border-color:#c8d8e8;}
+[data-theme="light"] #authOverlay{background:linear-gradient(135deg,#f0f4f8 0%,#dce8f5 100%);}
+[data-theme="light"] #authOverlay .grid-bg{background-image:linear-gradient(rgba(26,86,219,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(26,86,219,0.05) 1px,transparent 1px);}
+[data-theme="light"] #authOverlay .glow{background:radial-gradient(circle,rgba(26,86,219,0.1) 0%,transparent 70%);}
+[data-theme="light"] .hero-grid{background-image:linear-gradient(rgba(26,86,219,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(26,86,219,0.04) 1px,transparent 1px);}
+[data-theme="light"] .hero-glow{background:radial-gradient(circle,rgba(26,86,219,0.08) 0%,transparent 70%);}
+[data-theme="light"] .dash-card{background:#fff;border-color:#c8d8e8;box-shadow:0 2px 12px rgba(26,86,219,0.06);}
+[data-theme="light"] .dash-card::before{background:linear-gradient(90deg,#1a56db,#0e7fc0);}
+[data-theme="light"] .metric-box{background:#f0f4f8;border-color:#c8d8e8;}
+[data-theme="light"] .mon-card{background:#fff;border-color:#c8d8e8;box-shadow:0 1px 8px rgba(26,86,219,0.06);}
+[data-theme="light"] .mon-card::before{background:linear-gradient(90deg,#1a56db,transparent);}
+[data-theme="light"] .sensor-card{background:#fff;border-color:#c8d8e8;}
+[data-theme="light"] .sensor-card:hover{border-color:#1a56db;}
+[data-theme="light"] .step{background:#fff;border-right:1px solid #c8d8e8;}
+[data-theme="light"] .step:hover{background:#f0f4f8;}
+[data-theme="light"] .arch-layer{background:#fff;border-right:1px solid #c8d8e8;}
+[data-theme="light"] .arch-flow{border-color:#c8d8e8;}
+[data-theme="light"] .stack-cat{background:#fff;border-color:#c8d8e8;}
+[data-theme="light"] .team-card{background:#fff;border-color:#c8d8e8;}
+[data-theme="light"] .team-card:hover{border-color:#1a56db;}
+[data-theme="light"] .supervisor-box{background:#f0f4f8;border-color:#c8d8e8;}
+[data-theme="light"] .auth-field input{background:#f8fafc;border-color:#c8d8e8;color:#1e293b;}
+[data-theme="light"] .auth-field input:focus{border-color:#1a56db;box-shadow:0 0 0 3px rgba(26,86,219,0.1);}
+[data-theme="light"] .google-btn{background:#f8fafc;color:#1e293b;border-color:#c8d8e8;}
+[data-theme="light"] .google-btn:hover{border-color:#1a56db;background:#eef2ff;}
+[data-theme="light"] .pw-wrap input{background:#f8fafc;}
+[data-theme="light"] .tbl-wrap{background:#fff;border-color:#c8d8e8;}
+[data-theme="light"] .history-table th{background:#f0f4f8;}
+[data-theme="light"] .stat-box{background:#f0f4f8;border-color:#c8d8e8;}
+[data-theme="light"] .auth-btn{background:#1a56db;color:#fff;border:none;}
+[data-theme="light"] .auth-btn:hover{background:#1447b8;color:#fff;}
+[data-theme="light"] .auth-btn:disabled{background:#c8d8e8;color:#94a3b8;}
+[data-theme="light"] .login-btn{background:#1a56db;color:#fff;}
+[data-theme="light"] .nav-pill{background:#1a56db;color:#fff;}
+[data-theme="light"] .nav-pill:hover{background:#1447b8;}
+[data-theme="light"] .nav-signout{border-color:#c8d8e8;color:#64748b;}
+[data-theme="light"] .nav-signout:hover{border-color:#dc2626;color:#dc2626;}
+[data-theme="light"] .s-normal{background:rgba(5,150,105,0.1);color:#059669;border-color:rgba(5,150,105,0.3);}
+[data-theme="light"] .s-alert{background:rgba(220,38,38,0.1);color:#dc2626;border-color:rgba(220,38,38,0.3);}
+[data-theme="light"] .sev-normal{background:rgba(5,150,105,0.1);color:#059669;border:1px solid rgba(5,150,105,0.3);}
+[data-theme="light"] .sev-low{background:rgba(217,119,6,0.1);color:#d97706;border:1px solid rgba(217,119,6,0.3);}
+[data-theme="light"] .sev-med{background:rgba(234,88,12,0.1);color:#ea580c;border:1px solid rgba(234,88,12,0.3);}
+[data-theme="light"] .sev-high{background:rgba(220,38,38,0.1);color:#dc2626;border:1px solid rgba(220,38,38,0.3);}
+[data-theme="light"] .hero-title .acc{color:#1a56db;}
+[data-theme="light"] .hero-title .stroke{-webkit-text-stroke:1px #1e293b;}
+[data-theme="light"] .al-name{color:#1a56db;}
+[data-theme="light"] .s-tag{color:#1a56db;}
+[data-theme="light"] .hero-tag{color:#1a56db;border-color:rgba(26,86,219,0.3);background:rgba(26,86,219,0.05);}
+[data-theme="light"] .hero-tag::before{background:#1a56db;}
+[data-theme="light"] .stat-v{color:#1a56db;}
+[data-theme="light"] .mb-val{color:#1e293b;}
+[data-theme="light"] .mb-unit{color:#64748b;}
+[data-theme="light"] .mb-label{color:#64748b;}
+[data-theme="light"] .f-logo{color:#1a56db;}
+[data-theme="light"] .nav-logo{color:#1a56db;}
+[data-theme="light"] .auth-logo{color:#1a56db;}
+[data-theme="light"] .auth-tagline{color:#64748b;}
+[data-theme="light"] .auth-tab.active{color:#1a56db;border-bottom-color:#1a56db;}
+[data-theme="light"] .auth-tab{color:#64748b;}
+[data-theme="light"] .auth-switch{color:#1a56db;}
+[data-theme="light"] .sc-title.vib{color:#1a56db;}
+[data-theme="light"] .sc-title.temp{color:#0e7fc0;}
+[data-theme="light"] .sensor-card.vib::after{background:linear-gradient(90deg,#1a56db,transparent);}
+[data-theme="light"] .sensor-card.temp::after{background:linear-gradient(90deg,#0e7fc0,transparent);}
+[data-theme="light"] .step-tech{color:#1a56db;}
+[data-theme="light"] .step-n{color:#c8d8e8;}
+[data-theme="light"] .nav-links a:hover{color:#1a56db;}
+[data-theme="light"] .btn-p{background:#1a56db;color:#fff;}
+[data-theme="light"] .btn-p:hover{background:#1447b8;}
+[data-theme="light"] .btn-g{border-color:#c8d8e8;color:#475569;}
+[data-theme="light"] .btn-g:hover{border-color:#1a56db;color:#1a56db;}
+[data-theme="light"] .hero-desc{color:#475569;}
+[data-theme="light"] .s-sub{color:#475569;}
+[data-theme="light"] .sc-desc{color:#475569;}
+[data-theme="light"] .step-desc{color:#475569;}
+[data-theme="light"] .spec-k{color:#64748b;}
+[data-theme="light"] .spec-v{color:#1e293b;}
+[data-theme="light"] .al-item{background:#f0f4f8;border-color:#c8d8e8;color:#1e293b;}
+[data-theme="light"] .al-num{color:#94a3b8;}
+[data-theme="light"] .scat-title{color:#64748b;border-bottom-color:#c8d8e8;}
+[data-theme="light"] .scat-item{color:#1e293b;}
+[data-theme="light"] .scat-item::before{background:#1a56db;}
+[data-theme="light"] .tc-init{background:rgba(26,86,219,0.08);border-color:rgba(26,86,219,0.2);color:#1a56db;}
+[data-theme="light"] .tc-role{color:#64748b;}
+[data-theme="light"] .sup-tag{color:#94a3b8;}
+[data-theme="light"] footer{border-top-color:#c8d8e8;}
+[data-theme="light"] .f-dept{color:#64748b;}
+[data-theme="light"] .f-info{color:#64748b;}
+[data-theme="light"] .score-normal{color:#059669;}
+[data-theme="light"] .score-low{color:#d97706;}
+[data-theme="light"] .score-med{color:#ea580c;}
+[data-theme="light"] .score-high{color:#dc2626;}
+[data-theme="light"] .big-score{color:#1e293b;}
+[data-theme="light"] #alertBanner{background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.2);color:#dc2626;}
+[data-theme="light"] .sb-val{color:#1e293b;}
+[data-theme="light"] .sb-lbl{color:#64748b;}
+[data-theme="light"] .dc-title{color:#64748b;}
+[data-theme="light"] .status-badge.s-normal{background:rgba(5,150,105,0.1);color:#059669;}
+[data-theme="light"] .ax-l{color:#64748b;}
+[data-theme="light"] .sb-labels{color:#64748b;}
+[data-theme="light"] .auth-msg.error{background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.25);color:#dc2626;}
+[data-theme="light"] .auth-msg.success{background:rgba(5,150,105,0.06);border-color:rgba(5,150,105,0.25);color:#059669;}
+[data-theme="light"] .pw-strength-label{color:#64748b;}
+[data-theme="light"] #confirmPanel{background:rgba(26,86,219,0.04);border-color:rgba(26,86,219,0.2);}
+[data-theme="light"] .resend-btn{border-color:#c8d8e8;color:#64748b;}
+[data-theme="light"] #authOverlay .wire-title{color:#64748b;}
+[data-theme="light"] .or-divider{color:#94a3b8;}
+[data-theme="light"] .or-divider::before,[data-theme="light"] .or-divider::after{background:#c8d8e8;}
+[data-theme="light"] #section_how{background:#f8fafc;}
+[data-theme="light"] #stack{background:#f8fafc;}
+[data-theme="light"] #monitor{background:#f8fafc;}
+/* theme toggle button */
+.theme-toggle{
+  background:none;border:1px solid var(--border2);cursor:pointer;
+  width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1rem;transition:all 0.2s;color:var(--text);
+}
+.theme-toggle:hover{border-color:var(--acc);background:rgba(128,128,128,0.1);}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--acc)}
 
-/* NAV */
+/* ── AUTH OVERLAY ───────────────────────────────────────────────────────────── */
+#authOverlay{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;
+}
+#authOverlay .grid-bg{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(78,168,222,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(78,168,222,0.04) 1px,transparent 1px);
+  background-size:50px 50px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 100%);
+}
+#authOverlay .glow{
+  position:absolute;width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(78,168,222,0.1) 0%,transparent 70%);
+  top:0;left:50%;transform:translateX(-50%);pointer-events:none;
+}
+.auth-box{
+  position:relative;z-index:1;
+  width:100%;max-width:420px;
+  background:var(--s1);
+  border:1px solid var(--border2);
+  padding:2.5rem 2rem;
+}
+.auth-box::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--acc),var(--acc2));
+}
+.auth-logo{
+  font-family:'Bebas Neue',sans-serif;font-size:1.8rem;
+  letter-spacing:3px;color:var(--acc);text-align:center;margin-bottom:0.25rem;
+}
+.auth-logo span{color:var(--muted2)}
+.auth-tagline{
+  font-family:'DM Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.15em;color:var(--muted);text-align:center;
+  text-transform:uppercase;margin-bottom:2rem;
+}
+.auth-tabs{display:flex;border-bottom:1px solid var(--border2);margin-bottom:1.75rem}
+.auth-tab{
+  flex:1;padding:0.6rem;text-align:center;cursor:pointer;
+  font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--muted);border-bottom:2px solid transparent;
+  transition:all 0.2s;margin-bottom:-1px;
+}
+.auth-tab.active{color:var(--acc);border-bottom-color:var(--acc)}
+.auth-field{margin-bottom:1rem}
+.auth-field label{
+  display:block;font-family:'DM Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem;
+}
+.auth-field input{
+  width:100%;background:var(--s2);border:1px solid var(--border2);
+  color:var(--text);font-family:'DM Mono',monospace;font-size:0.82rem;
+  padding:0.65rem 0.9rem;outline:none;transition:border-color 0.2s;
+}
+.auth-field input:focus{border-color:var(--acc)}
+.auth-field input::placeholder{color:var(--muted)}
+
+/* password wrapper with eye toggle */
+.pw-wrap{position:relative;display:flex;align-items:center}
+.pw-wrap input{flex:1;padding-right:2.4rem}
+.eye-btn{
+  position:absolute;right:0.7rem;background:none;border:none;cursor:pointer;
+  color:var(--muted);font-size:1rem;line-height:1;padding:0;transition:color 0.2s;
+  display:flex;align-items:center;
+}
+.eye-btn:hover{color:var(--acc)}
+
+/* password strength bar */
+.pw-strength{margin-top:5px;display:none}
+.pw-strength.show{display:block}
+.pw-strength-bar{height:2px;background:var(--border2);border-radius:2px;overflow:hidden;margin-bottom:3px}
+.pw-strength-fill{height:100%;border-radius:2px;transition:width 0.3s,background 0.3s;width:0}
+.pw-strength-label{font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:0.06em}
+
+/* confirm match indicator */
+.pw-match{
+  display:none;align-items:center;gap:5px;margin-top:5px;
+  font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.04em;
+}
+.pw-match.show{display:flex}
+.pw-match.ok{color:var(--green)}
+.pw-match.bad{color:var(--red)}
+.match-icon{font-size:0.8rem}
+
+.auth-btn{
+  width:100%;padding:0.8rem;background:var(--acc);color:#000;
+  font-family:'DM Mono',monospace;font-size:0.75rem;letter-spacing:0.05em;
+  text-transform:uppercase;border:none;cursor:pointer;margin-top:0.75rem;
+  transition:all 0.2s;font-weight:500;
+}
+.auth-btn:hover{background:#fff;transform:translateY(-1px)}
+.auth-btn:disabled{background:var(--border2);color:var(--muted);cursor:not-allowed;transform:none}
+.google-btn{
+  width:100%;padding:0.75rem;background:var(--s2);color:var(--text);
+  font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.04em;
+  border:1px solid var(--border2);cursor:pointer;margin-top:0.6rem;
+  transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.google-btn:hover{border-color:#4285F4;color:#fff;background:rgba(66,133,244,0.08);transform:translateY(-1px)}
+.google-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.google-icon{width:16px;height:16px;flex-shrink:0}
+.or-divider{
+  display:flex;align-items:center;gap:10px;margin:0.9rem 0 0;
+  font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:0.06em;
+}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border2)}
+.auth-msg{
+  margin-top:1rem;padding:0.65rem 0.9rem;
+  font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.04em;
+  display:none;line-height:1.6;
+}
+.auth-msg.error{background:rgba(255,63,63,0.08);border:1px solid rgba(255,63,63,0.25);color:var(--red)}
+.auth-msg.success{background:rgba(57,255,122,0.08);border:1px solid rgba(57,255,122,0.25);color:var(--green)}
+.auth-divider{
+  text-align:center;font-family:'DM Mono',monospace;font-size:0.58rem;
+  color:var(--muted);margin:1.25rem 0 0;letter-spacing:0.06em;
+}
+.auth-switch{
+  color:var(--acc);cursor:pointer;text-decoration:underline;
+  margin-left:4px;transition:color 0.2s;
+}
+.auth-switch:hover{color:#fff}
+.auth-loading{
+  display:none;text-align:center;padding:0.5rem;
+  font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);
+}
+.auth-loading.show{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{
+  display:inline-block;width:12px;height:12px;border:2px solid var(--border2);
+  border-top-color:var(--acc);border-radius:50%;animation:spin 0.7s linear infinite;
+  margin-right:6px;vertical-align:middle;
+}
+
+/* ── MAIN SITE (hidden until auth) ─────────────────────────────────────────── */
+#mainSite{display:none}
+
+/* ── NAV ─────────────────────────────────────────────────────────────────────*/
 nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;justify-content:space-between;align-items:center;padding:1rem 3rem;background:rgba(8,8,8,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
 .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:3px;color:var(--acc);text-decoration:none}
 .nav-logo span{color:var(--muted2)}
 .nav-links{display:flex;gap:2rem;list-style:none}
 .nav-links a{font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted2);text-decoration:none;transition:color 0.2s}
 .nav-links a:hover{color:var(--acc)}
+.nav-right{display:flex;align-items:center;gap:1rem}
 .nav-pill{font-family:'DM Mono',monospace;font-size:0.65rem;padding:0.45rem 1rem;background:var(--acc);color:#000;text-decoration:none;letter-spacing:0.05em;transition:all 0.2s}
-.nav-pill:hover{background:#fff}
+.nav-pill:hover{background:var(--acc2)}
+.nav-user{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.06em}
+.nav-signout{font-family:'DM Mono',monospace;font-size:0.6rem;padding:0.35rem 0.8rem;background:transparent;color:var(--muted);border:1px solid var(--border2);cursor:pointer;letter-spacing:0.05em;transition:all 0.2s}
+.nav-signout:hover{border-color:var(--red);color:var(--red)}
 
 /* SECTIONS */
 section{padding:6rem 3rem}
@@ -37,12 +309,12 @@ section{padding:6rem 3rem}
 
 /* HERO */
 #hero{min-height:100vh;display:grid;grid-template-columns:1fr 420px;gap:3rem;align-items:center;padding:7rem 3rem 3rem;position:relative;overflow:hidden}
-.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(45,212,191,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,0.025) 1px,transparent 1px);background-size:50px 50px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 100%)}
-.hero-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,0.05) 0%,transparent 70%);top:5%;right:5%;pointer-events:none}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(78,168,222,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(78,168,222,0.04) 1px,transparent 1px);background-size:50px 50px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 100%)}
+.hero-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(78,168,222,0.08) 0%,transparent 70%);top:5%;right:5%;pointer-events:none}
 .hero-content{position:relative;z-index:1}
-.hero-tag{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;color:var(--acc);border:1px solid rgba(45,212,191,0.25);padding:0.35rem 0.9rem;margin-bottom:2rem}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;color:var(--acc);border:1px solid rgba(232,255,71,0.25);padding:0.35rem 0.9rem;margin-bottom:2rem}
 .hero-tag::before{content:'';width:5px;height:5px;background:var(--acc);border-radius:50%;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 .hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,9vw,7rem);line-height:0.9;margin-bottom:1.5rem}
 .hero-title .acc{color:var(--acc)}
 .hero-title .stroke{-webkit-text-stroke:1px var(--text);color:transparent}
@@ -56,7 +328,7 @@ section{padding:6rem 3rem}
 .stat-v{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--acc);line-height:1}
 .stat-l{font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:3px}
 
-/* LIVE DASHBOARD CARD */
+/* HERO DASHBOARD CARD */
 .hero-dash{position:relative;z-index:1}
 .dash-card{background:var(--s1);border:1px solid var(--border2);padding:1.25rem;position:relative;overflow:hidden}
 .dash-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--acc),var(--acc2))}
@@ -111,7 +383,7 @@ section{padding:6rem 3rem}
 .spec:last-child{border-bottom:none}
 .spec-k{color:var(--muted2)}.spec-v{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text)}
 
-/* LIVE MONITOR SECTION */
+/* LIVE MONITOR */
 #monitor{background:var(--s1);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .monitor-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:2rem}
 .mon-card{background:var(--bg);border:1px solid var(--border);padding:1.5rem;position:relative}
@@ -134,25 +406,6 @@ section{padding:6rem 3rem}
 .history-table td{font-family:'DM Mono',monospace;font-size:0.68rem;padding:0.5rem;border-bottom:1px solid var(--border);color:var(--text)}
 .history-table tr:last-child td{border-bottom:none}
 .full-width{grid-column:1/-1}
-
-/* MONITOR LOGIN GATE */
-.login-gate{max-width:380px;margin:2rem auto;background:var(--bg);border:1px solid var(--border);padding:2rem;text-align:center}
-.login-gate p{font-size:0.8rem;color:var(--muted2);margin-bottom:1.5rem;line-height:1.6}
-.login-field{margin-bottom:0.85rem;text-align:left}
-.login-field label{display:block;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:0.35rem}
-.login-field input{width:100%;background:var(--s2);border:1px solid var(--border2);color:var(--text);padding:0.6rem 0.75rem;font-family:'DM Mono',monospace;font-size:0.8rem}
-.login-field input:focus{outline:none;border-color:var(--acc)}
-.login-error{color:var(--red);font-family:'DM Mono',monospace;font-size:0.68rem;margin-top:0.75rem;min-height:1em}
-.login-btn{width:100%;margin-top:0.5rem;font-family:'DM Mono',monospace;font-size:0.75rem;padding:0.8rem;background:var(--acc);color:#000;border:none;cursor:pointer;letter-spacing:0.05em;transition:background 0.2s}
-.login-btn:hover{background:#fff}
-.login-btn:disabled{opacity:0.5;cursor:default}
-.login-divider{display:flex;align-items:center;gap:0.75rem;margin:1rem 0;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase}
-.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--border2)}
-.login-btn-google{width:100%;font-family:'DM Mono',monospace;font-size:0.75rem;padding:0.75rem;background:transparent;color:var(--text);border:1px solid var(--border2);cursor:pointer;letter-spacing:0.02em;transition:all 0.2s}
-.login-btn-google:hover{border-color:var(--acc);color:var(--acc)}
-.monitor-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted2)}
-.logout-link{color:var(--muted2);cursor:pointer;text-decoration:underline;background:none;border:none;font-family:'DM Mono',monospace;font-size:0.65rem}
-.logout-link:hover{color:var(--acc)}
 
 /* ARCHITECTURE */
 #arch{padding:6rem 3rem}
@@ -178,7 +431,7 @@ section{padding:6rem 3rem}
 .team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;max-width:560px}
 .team-card{background:var(--s1);border:1px solid var(--border);padding:1.5rem;transition:border-color 0.3s}
 .team-card:hover{border-color:var(--acc)}
-.tc-init{width:40px;height:40px;background:rgba(45,212,191,0.07);border:1px solid rgba(45,212,191,0.18);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:var(--acc);margin-bottom:0.75rem}
+.tc-init{width:40px;height:40px;background:rgba(232,255,71,0.07);border:1px solid rgba(232,255,71,0.18);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:var(--acc);margin-bottom:0.75rem}
 .tc-name{font-size:0.88rem;font-weight:500;margin-bottom:0.2rem}
 .tc-role{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted)}
 .supervisor-box{margin-top:1.5rem;border:1px solid var(--border);padding:1.25rem;max-width:560px}
@@ -207,10 +460,162 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   .arch-layer{border-right:none;border-bottom:1px solid var(--border)}
   .stack-grid{grid-template-columns:1fr}.hero-stats{gap:1.5rem}
   footer{flex-direction:column;gap:1rem;text-align:center}
+  .auth-box{margin:1rem}
 }
 </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- AUTH OVERLAY                                                               -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div id="authOverlay">
+  <div class="grid-bg"></div>
+  <div class="glow"></div>
+
+  <!-- OAuth processing indicator -->
+  <div id="oauthProcessing" style="display:none;position:absolute;inset:0;z-index:2;
+    display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+    <div style="width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--acc);
+      border-radius:50%;animation:spin 0.8s linear infinite"></div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.08em">
+      Signing you in…
+    </div>
+  </div>
+
+  <div class="auth-box" id="authBox">
+    <div class="auth-logo">Engine<span>IQ</span></div>
+    <div class="auth-tagline">Predictive Engine Health Monitor</div>
+
+    <!-- tabs -->
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</div>
+      <div class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Create Account</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginForm">
+      <div class="auth-field">
+        <label>Email address or full name</label>
+        <input type="text" id="loginIdentifier" placeholder="you@example.com or Your Full Name"
+          autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <div class="pw-wrap">
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')doLogin()">
+          <button class="eye-btn" type="button" onclick="toggleEye('loginPassword','loginEye')" id="loginEye"
+            title="Show/hide password">👁</button>
+        </div>
+      </div>
+      <button class="auth-btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
+      <div class="auth-loading" id="loginLoading"><span class="spinner"></span>Authenticating…</div>
+      <div class="auth-msg" id="loginMsg"></div>
+      <div class="or-divider">or</div>
+      <button class="google-btn" id="loginGoogleBtn" onclick="doGoogleAuth()">
+        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+      <div class="auth-divider">
+        No account yet?<span class="auth-switch" onclick="switchTab('signup')">Create one</span>
+      </div>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div id="signupForm" style="display:none">
+      <div class="auth-field">
+        <label>Full name</label>
+        <input type="text" id="signupName" placeholder="Your full name" autocomplete="name">
+      </div>
+      <div class="auth-field">
+        <label>Email address</label>
+        <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Password
+          <span style="color:var(--muted);font-size:0.55rem">(min. 8 chars · must include special character)</span>
+        </label>
+        <div class="pw-wrap">
+          <input type="password" id="signupPassword" placeholder="••••••••" autocomplete="new-password"
+            oninput="onPasswordInput()">
+          <button class="eye-btn" type="button" onclick="toggleEye('signupPassword','signupEye')" id="signupEye"
+            title="Show/hide password">👁</button>
+        </div>
+        <!-- strength bar -->
+        <div class="pw-strength" id="pwStrength">
+          <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwStrengthFill"></div></div>
+          <div class="pw-strength-label" id="pwStrengthLabel"></div>
+        </div>
+      </div>
+      <div class="auth-field">
+        <label>Confirm password</label>
+        <div class="pw-wrap">
+          <input type="password" id="signupConfirm" placeholder="••••••••" autocomplete="new-password"
+            oninput="onConfirmInput()" onkeydown="if(event.key==='Enter')doSignup()">
+          <button class="eye-btn" type="button" onclick="toggleEye('signupConfirm','confirmEye')" id="confirmEye"
+            title="Show/hide password">👁</button>
+        </div>
+        <!-- match indicator -->
+        <div class="pw-match" id="pwMatch">
+          <span class="match-icon" id="matchIcon"></span>
+          <span id="matchLabel"></span>
+        </div>
+      </div>
+      <button class="auth-btn" id="signupBtn" onclick="doSignup()">Create Account →</button>
+      <div class="auth-loading" id="signupLoading"><span class="spinner"></span>Creating your account…</div>
+      <div class="auth-msg" id="signupMsg"></div>
+      <div class="or-divider" id="signupOrDivider">or</div>
+      <button class="google-btn" id="signupGoogleBtn" onclick="doGoogleAuth()">
+        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <!-- confirmation sent state -->
+      <div id="confirmPanel" style="display:none">
+        <div style="background:rgba(232,255,71,0.05);border:1px solid rgba(232,255,71,0.2);padding:1rem;margin-top:0.75rem">
+          <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--acc);margin-bottom:0.5rem;letter-spacing:0.04em">
+            ✉ Confirmation email sent
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted2);line-height:1.65;margin-bottom:0.75rem">
+            Check your inbox at <strong id="confirmedEmail" style="color:var(--text)"></strong> and click the confirmation link to activate your account.<br><br>
+            <span style="color:var(--amber);font-size:0.72rem">⚠ The confirmation link expires after <strong>1 hour</strong>.</span>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);margin-bottom:0.6rem" id="resendCountdown">
+            Resend available in <span id="countdownSecs" style="color:var(--acc)">60</span>s
+          </div>
+          <button class="auth-btn" id="resendBtn" onclick="doResend()"
+            style="margin-top:0;background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:not-allowed"
+            disabled>Resend confirmation email</button>
+          <div class="auth-loading" id="resendLoading"><span class="spinner"></span>Resending…</div>
+          <div class="auth-msg" id="resendMsg"></div>
+        </div>
+        <div style="text-align:center;margin-top:1rem;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted)">
+          Wrong email? <span class="auth-switch" onclick="resetSignup()">Start over</span>
+        </div>
+      </div>
+
+      <div id="signupDivider" class="auth-divider">
+        Already have an account?<span class="auth-switch" onclick="switchTab('login')">Sign in</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- MAIN SITE                                                                  -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div id="mainSite">
 
 <!-- NAV -->
 <nav>
@@ -222,14 +627,18 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
     <li><a href="#arch">Architecture</a></li>
     <li><a href="#team">Team</a></li>
   </ul>
-  <a href="#monitor" class="nav-pill">Live Monitor →</a>
+  <div class="nav-right">
+    <span class="nav-user" id="navUserEmail"></span>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+    <button class="nav-signout" onclick="doSignOut()">Sign Out</button>
+    <a href="#monitor" class="nav-pill">Live Monitor →</a>
+  </div>
 </nav>
 
-<!-- ── HERO ── -->
+<!-- HERO -->
 <section id="hero">
   <div class="hero-grid"></div>
   <div class="hero-glow"></div>
-
   <div class="hero-content">
     <div class="hero-tag">IoT · Machine Learning · Predictive Maintenance</div>
     <h1 class="hero-title">
@@ -249,8 +658,6 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
       <div><div class="stat-v">GHS 300</div><div class="stat-l">Hardware cost</div></div>
     </div>
   </div>
-
-  <!-- HERO DASHBOARD -->
   <div class="hero-dash">
     <div class="dash-card">
       <div class="dc-head">
@@ -284,44 +691,20 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   </div>
 </section>
 
-<!-- ── HOW IT WORKS ── -->
+<!-- HOW IT WORKS -->
 <section id="how">
   <span class="s-tag reveal">// process</span>
   <h2 class="s-title reveal">How it works</h2>
   <p class="s-sub reveal">Four layers. One goal — catch the problem before it breaks your engine.</p>
   <div class="steps reveal">
-    <div class="step">
-      <div class="step-n">01</div>
-      <div class="step-icon">⚡</div>
-      <div class="step-title">Sense</div>
-      <p class="step-desc">Two sensors on the engine block read vibration on 3 axes and surface temperature, 50 times per second.</p>
-      <div class="step-tech">MPU6050 · DS18B20</div>
-    </div>
-    <div class="step">
-      <div class="step-n">02</div>
-      <div class="step-icon">📡</div>
-      <div class="step-title">Transmit</div>
-      <p class="step-desc">The ESP32 microcontroller packages sensor data as JSON and sends it as BLE notifications directly to a connected laptop or phone — no Wi-Fi router needed.</p>
-      <div class="step-tech">ESP32 · Bluetooth LE</div>
-    </div>
-    <div class="step">
-      <div class="step-n">03</div>
-      <div class="step-icon">🧠</div>
-      <div class="step-title">Analyse</div>
-      <p class="step-desc">Python server filters the signal, extracts 22 features, and runs Isolation Forest inference to score each window.</p>
-      <div class="step-tech">Isolation Forest · FFT · Butterworth</div>
-    </div>
-    <div class="step">
-      <div class="step-n">04</div>
-      <div class="step-icon">🔔</div>
-      <div class="step-title">Alert</div>
-      <p class="step-desc">If the score drops below the threshold, a severity-graded alert fires and the event is logged to the cloud.</p>
-      <div class="step-tech">Streamlit · Supabase</div>
-    </div>
+    <div class="step"><div class="step-n">01</div><div class="step-icon">⚡</div><div class="step-title">Sense</div><p class="step-desc">Two sensors on the engine block read vibration on 3 axes and surface temperature, 50 times per second.</p><div class="step-tech">MPU6050 · DS18B20</div></div>
+    <div class="step"><div class="step-n">02</div><div class="step-icon">📡</div><div class="step-title">Transmit</div><p class="step-desc">The ESP32 microcontroller packages sensor data as JSON and publishes it over Wi-Fi using lightweight MQTT.</p><div class="step-tech">ESP32 · MQTT · Wi-Fi</div></div>
+    <div class="step"><div class="step-n">03</div><div class="step-icon">🧠</div><div class="step-title">Analyse</div><p class="step-desc">Python server filters the signal, extracts 22 features, and runs Isolation Forest inference to score each window.</p><div class="step-tech">Isolation Forest · FFT · Butterworth</div></div>
+    <div class="step"><div class="step-n">04</div><div class="step-icon">🔔</div><div class="step-title">Alert</div><p class="step-desc">If the score drops below the threshold, a severity-graded alert fires and the event is logged to the cloud.</p><div class="step-tech">Streamlit · Supabase</div></div>
   </div>
 </section>
 
-<!-- ── SENSORS ── -->
+<!-- SENSORS -->
 <section id="sensors">
   <span class="s-tag reveal">// sensors</span>
   <h2 class="s-title reveal">What it measures</h2>
@@ -356,38 +739,12 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   </div>
 </section>
 
-<!-- ── LIVE MONITOR ── -->
+<!-- LIVE MONITOR -->
 <section id="monitor" style="padding:6rem 3rem">
   <span class="s-tag reveal">// live monitor</span>
   <h2 class="s-title reveal">Engine Health Monitor</h2>
   <p class="s-sub reveal">Real-time anomaly detection — powered by Isolation Forest ML model trained on 9,500 normal engine readings.</p>
-
-  <!-- Login gate — the monitor grid below only renders once signed in -->
-  <div class="login-gate reveal" id="monitorLoginGate">
-    <div class="mon-title">// Sign in required</div>
-    <p>This dashboard shows live engine telemetry. Sign in with your EngineIQ account to view it.</p>
-    <form id="monitorLoginForm">
-      <div class="login-field">
-        <label for="monitorEmail">Email</label>
-        <input type="email" id="monitorEmail" autocomplete="username" required>
-      </div>
-      <div class="login-field">
-        <label for="monitorPassword">Password</label>
-        <input type="password" id="monitorPassword" autocomplete="current-password" required>
-      </div>
-      <button type="submit" class="login-btn" id="monitorLoginBtn">Log in</button>
-      <div class="login-error" id="monitorLoginError"></div>
-    </form>
-    <div class="login-divider"><span>or</span></div>
-    <button type="button" class="login-btn-google" id="monitorGoogleBtn">Continue with Google</button>
-  </div>
-
-  <div class="monitor-grid" id="monitorContent" style="display:none">
-    <div class="full-width monitor-topbar">
-      <span id="monitorUserEmail"></span>
-      <button class="logout-link" id="monitorLogoutBtn">Log out</button>
-    </div>
-    <!-- Status Card -->
+  <div class="monitor-grid">
     <div class="mon-card reveal">
       <div class="mon-title">// Current Status</div>
       <div class="big-score score-normal" id="mScore">-0.04</div>
@@ -401,8 +758,6 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
         🔴 ANOMALY DETECTED — Seek mechanical inspection
       </div>
     </div>
-
-    <!-- Vibration Chart -->
     <div class="mon-card reveal">
       <div class="mon-title">// Vibration — Z Axis (live)</div>
       <div class="live-chart"><canvas id="monChart"></canvas></div>
@@ -412,8 +767,6 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
         <div class="ax"><span class="ax-l">Z axis</span><span class="ax-v" id="mZ" style="color:var(--acc)">0.000</span></div>
       </div>
     </div>
-
-    <!-- Score History Chart -->
     <div class="mon-card reveal">
       <div class="mon-title">// Anomaly Score History</div>
       <div class="live-chart"><canvas id="scoreChart"></canvas></div>
@@ -422,8 +775,6 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
         <span style="color:var(--red)">- - Threshold (-0.50)</span>
       </div>
     </div>
-
-    <!-- Anomaly Log -->
     <div class="mon-card reveal">
       <div class="mon-title">// Recent Anomaly Log</div>
       <table class="history-table">
@@ -433,10 +784,8 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
         </tbody>
       </table>
     </div>
-
-    <!-- Severity Distribution -->
     <div class="mon-card full-width reveal">
-      <div class="mon-title">// Severity Distribution — All-Time</div>
+      <div class="mon-title">// Severity Distribution — Current Session</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:0.75rem">
         <div class="stat-box" style="border-color:rgba(57,255,122,0.2)"><div class="sb-val" id="countNormal" style="color:var(--green)">0</div><div class="sb-lbl">Normal</div></div>
         <div class="stat-box" style="border-color:rgba(255,181,69,0.2)"><div class="sb-val" id="countLow" style="color:var(--amber)">0</div><div class="sb-lbl">Low</div></div>
@@ -444,8 +793,6 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
         <div class="stat-box" style="border-color:rgba(255,63,63,0.2)"><div class="sb-val" id="countHigh" style="color:var(--red)">0</div><div class="sb-lbl">High</div></div>
       </div>
     </div>
-
-    <!-- Embedded Streamlit Dashboard -->
     <div class="mon-card full-width reveal">
       <div class="mon-title" style="display:flex;justify-content:space-between;align-items:center">
         <span>// Full Interactive Dashboard</span>
@@ -455,119 +802,46 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
           <a href="https://enginemonitor.streamlit.app/" target="_blank" style="color:var(--acc);text-decoration:none;font-size:0.58rem;margin-left:0.5rem">Open ↗</a>
         </div>
       </div>
-      <iframe
-        src="https://enginemonitor.streamlit.app/?embedded=true"
-        width="100%"
-        height="750px"
+      <iframe src="https://enginemonitor.streamlit.app/?embedded=true" width="100%" height="750px"
         style="display:block;border:none;background:var(--bg);margin-top:0.75rem"
-        title="EngineIQ Live Dashboard"
-        loading="lazy"
-        allow="fullscreen"
-      ></iframe>
+        title="EngineIQ Live Dashboard" loading="lazy" allow="fullscreen"></iframe>
     </div>
   </div>
 </section>
 
-<!-- ── ARCHITECTURE ── -->
+<!-- ARCHITECTURE -->
 <section id="arch">
   <span class="s-tag reveal">// architecture</span>
   <h2 class="s-title reveal">System architecture</h2>
   <p class="s-sub reveal">Four distinct layers — from physical hardware to the screen in your hand.</p>
   <div class="arch-flow reveal">
-    <div class="arch-layer">
-      <div class="al-num">LAYER 01</div>
-      <div class="al-name">Perception</div>
-      <div class="al-items">
-        <div class="al-item">MPU6050 Accelerometer</div>
-        <div class="al-item">DS18B20 Temp Sensor</div>
-        <div class="al-item">Engine Block Mount</div>
-      </div>
-    </div>
-    <div class="arch-layer">
-      <div class="al-num">LAYER 02</div>
-      <div class="al-name">Network</div>
-      <div class="al-items">
-        <div class="al-item">ESP32 Microcontroller</div>
-        <div class="al-item">Bluetooth Low Energy (BLE)</div>
-        <div class="al-item">GATT Notify Characteristic</div>
-        <div class="al-item">Bleak BLE Client</div>
-      </div>
-    </div>
-    <div class="arch-layer">
-      <div class="al-num">LAYER 03</div>
-      <div class="al-name">Processing</div>
-      <div class="al-items">
-        <div class="al-item">Butterworth Filter</div>
-        <div class="al-item">Feature Extraction</div>
-        <div class="al-item">Isolation Forest ML</div>
-        <div class="al-item">Supabase Logger</div>
-      </div>
-    </div>
-    <div class="arch-layer">
-      <div class="al-num">LAYER 04</div>
-      <div class="al-name">Application</div>
-      <div class="al-items">
-        <div class="al-item">Web Dashboard</div>
-        <div class="al-item">Real-time Charts</div>
-        <div class="al-item">Anomaly Alerts</div>
-        <div class="al-item">Admin Panel</div>
-      </div>
-    </div>
+    <div class="arch-layer"><div class="al-num">LAYER 01</div><div class="al-name">Perception</div><div class="al-items"><div class="al-item">MPU6050 Accelerometer</div><div class="al-item">DS18B20 Temp Sensor</div><div class="al-item">Engine Block Mount</div></div></div>
+    <div class="arch-layer"><div class="al-num">LAYER 02</div><div class="al-name">Network</div><div class="al-items"><div class="al-item">ESP32 Microcontroller</div><div class="al-item">Wi-Fi 802.11 b/g/n</div><div class="al-item">MQTT Publisher</div><div class="al-item">Mosquitto Broker</div></div></div>
+    <div class="arch-layer"><div class="al-num">LAYER 03</div><div class="al-name">Processing</div><div class="al-items"><div class="al-item">Butterworth Filter</div><div class="al-item">Feature Extraction</div><div class="al-item">Isolation Forest ML</div><div class="al-item">Supabase Logger</div></div></div>
+    <div class="arch-layer"><div class="al-num">LAYER 04</div><div class="al-name">Application</div><div class="al-items"><div class="al-item">Web Dashboard</div><div class="al-item">Real-time Charts</div><div class="al-item">Anomaly Alerts</div><div class="al-item">Admin Panel</div></div></div>
   </div>
 </section>
 
-<!-- ── TECH STACK ── -->
+<!-- TECH STACK -->
 <section id="stack">
   <span class="s-tag reveal">// built with</span>
   <h2 class="s-title reveal">Technology stack</h2>
   <p class="s-sub reveal">Every tool chosen for a reason — affordable, open-source, and proven.</p>
   <div class="stack-grid reveal">
-    <div class="stack-cat">
-      <div class="scat-title">Hardware</div>
-      <div class="scat-items">
-        <div class="scat-item">ESP32 Microcontroller</div>
-        <div class="scat-item">MPU6050 Accelerometer</div>
-        <div class="scat-item">DS18B20 Temperature Sensor</div>
-        <div class="scat-item">Arduino IDE / PlatformIO</div>
-      </div>
-    </div>
-    <div class="stack-cat">
-      <div class="scat-title">Machine Learning & Backend</div>
-      <div class="scat-items">
-        <div class="scat-item">Python 3.13</div>
-        <div class="scat-item">Scikit-learn (Isolation Forest)</div>
-        <div class="scat-item">NumPy · Pandas · SciPy</div>
-        <div class="scat-item">Bleak (BLE Client)</div>
-      </div>
-    </div>
-    <div class="stack-cat">
-      <div class="scat-title">Communication & UI</div>
-      <div class="scat-items">
-        <div class="scat-item">Bluetooth LE (GATT)</div>
-        <div class="scat-item">Streamlit Dashboard</div>
-        <div class="scat-item">Supabase (PostgreSQL)</div>
-        <div class="scat-item">Supabase Auth (JWT)</div>
-      </div>
-    </div>
+    <div class="stack-cat"><div class="scat-title">Hardware</div><div class="scat-items"><div class="scat-item">ESP32 Microcontroller</div><div class="scat-item">MPU6050 Accelerometer</div><div class="scat-item">DS18B20 Temperature Sensor</div><div class="scat-item">Arduino IDE / PlatformIO</div></div></div>
+    <div class="stack-cat"><div class="scat-title">Machine Learning & Backend</div><div class="scat-items"><div class="scat-item">Python 3.10+</div><div class="scat-item">Scikit-learn (Isolation Forest)</div><div class="scat-item">NumPy · Pandas · SciPy</div><div class="scat-item">Paho-MQTT</div></div></div>
+    <div class="stack-cat"><div class="scat-title">Communication & UI</div><div class="scat-items"><div class="scat-item">MQTT Protocol</div><div class="scat-item">Eclipse Mosquitto Broker</div><div class="scat-item">Streamlit Dashboard</div><div class="scat-item">Supabase (PostgreSQL)</div><div class="scat-item">Supabase Auth (JWT)</div></div></div>
   </div>
 </section>
 
-<!-- ── TEAM ── -->
+<!-- TEAM -->
 <section id="team">
   <span class="s-tag reveal">// group 11</span>
   <h2 class="s-title reveal">The team</h2>
   <p class="s-sub reveal">Final year Computer Science students, KNUST — Department of Computer Science, Faculty of Physical and Computational Sciences. Academic Year 2025/2026.</p>
   <div class="team-grid reveal">
-    <div class="team-card">
-      <div class="tc-init">IFW</div>
-      <div class="tc-name">Iddrisu Faadila Wumpini</div>
-      <div class="tc-role">Group 11 · CS Final Year</div>
-    </div>
-    <div class="team-card">
-      <div class="tc-init">LME</div>
-      <div class="tc-name">Lartey-Mensah Emmanuel Tetteh</div>
-      <div class="tc-role">Group 11 · CS Final Year</div>
-    </div>
+    <div class="team-card"><div class="tc-init">IFW</div><div class="tc-name">Iddrisu Faadila Wumpini</div><div class="tc-role">Group 11 · CS Final Year</div></div>
+    <div class="team-card"><div class="tc-init">LME</div><div class="tc-name">Lartey-Mensah Emmanuel Tetteh</div><div class="tc-role">Group 11 · CS Final Year</div></div>
   </div>
   <div class="supervisor-box reveal">
     <div class="sup-tag">Supervisor</div>
@@ -576,87 +850,522 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
   <div class="f-logo">Engine<span>IQ</span></div>
   <div class="f-info">IoT & ML-Based Predictive Car Engine Health Monitoring System<br><span style="color:#333">Final Year Project · Group 11 · KNUST · 2025/2026</span></div>
   <div class="f-dept">Dept. of Computer Science<br>KNUST, Kumasi, Ghana</div>
 </footer>
 
+</div><!-- /mainSite -->
+
 <script>
-// ── HERO CHART ────────────────────────────────────────────────────────────────
-const heroData = Array.from({length:40},()=>(Math.random()*0.03-0.015+0.994));
-const heroChart = new Chart(document.getElementById('heroChart'),{
-  type:'line',
-  data:{labels:Array(40).fill(''),datasets:[{data:heroData,borderColor:'#2dd4bf',borderWidth:1.5,fill:true,backgroundColor:'rgba(45,212,191,0.04)',pointRadius:0,tension:0.4}]},
-  options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}
+// ── SUPABASE INIT ─────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://vpudvhanmyggzimwcgqo.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwdWR2aGFubXlnZ3ppbXdjZ3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTA2MTQsImV4cCI6MjA5NjA4NjYxNH0.iXIR8-UE5SIaZfAY-Uc6-LaUzYkqfI4LdSY_71V9WQs';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    flowType: 'pkce',
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    persistSession: true,
+  }
 });
 
-// ── HERO PREVIEW LOOP ─────────────────────────────────────────────────────────
-// Decorative marketing animation only — this is the public hero card above
-// the fold, not the authenticated monitor. It has never been wired to real
-// sensor data and isn't claimed to be; the actual live data lives behind
-// the login gate in the #monitor section below.
-let heroAnomalyTimer=0, heroAnomalyMode=false;
-setInterval(()=>{
-  heroAnomalyTimer++;
-  if(heroAnomalyTimer%120===0){heroAnomalyMode=true;setTimeout(()=>{heroAnomalyMode=false},3500);}
+// ── PASSWORD UTILITIES ────────────────────────────────────────────────────────
+function hasSpecialChar(pw){ return /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pw); }
+function hasUpperCase(pw){   return /[A-Z]/.test(pw); }
+function hasNumber(pw){      return /[0-9]/.test(pw); }
 
-  let newVib,score,temp,ax,ay,az;
-  if(heroAnomalyMode){
-    newVib=0.994+(Math.random()*0.12-0.06);
-    score=-0.53-Math.random()*0.08;
-    temp=(78+Math.random()*8).toFixed(1);
-    ax=(0.04+Math.random()*0.05).toFixed(3);
-    ay=(-0.03-Math.random()*0.04).toFixed(3);
-    az=newVib.toFixed(3);
+function getStrength(pw){
+  let score = 0;
+  if(pw.length >= 8)        score++;
+  if(pw.length >= 12)       score++;
+  if(hasUpperCase(pw))      score++;
+  if(hasNumber(pw))         score++;
+  if(hasSpecialChar(pw))    score++;
+  if(score <= 1) return {level:0, label:'Weak',   color:'#ff3f3f', w:'20%'};
+  if(score <= 2) return {level:1, label:'Fair',   color:'#ffb545', w:'45%'};
+  if(score <= 3) return {level:2, label:'Good',   color:'#e8ff47', w:'65%'};
+  if(score <= 4) return {level:3, label:'Strong', color:'#39ff7a', w:'85%'};
+  return                    {level:4, label:'Very Strong', color:'#39ff7a', w:'100%'};
+}
+
+function onPasswordInput(){
+  const pw  = document.getElementById('signupPassword').value;
+  const str = document.getElementById('pwStrength');
+  const fill= document.getElementById('pwStrengthFill');
+  const lbl = document.getElementById('pwStrengthLabel');
+  if(!pw){ str.className='pw-strength'; return; }
+  str.className='pw-strength show';
+  const s = getStrength(pw);
+  fill.style.width    = s.w;
+  fill.style.background = s.color;
+  lbl.textContent     = s.label;
+  lbl.style.color     = s.color;
+  // also re-check confirm match
+  onConfirmInput();
+}
+
+function onConfirmInput(){
+  const pw  = document.getElementById('signupPassword').value;
+  const cf  = document.getElementById('signupConfirm').value;
+  const el  = document.getElementById('pwMatch');
+  const ico = document.getElementById('matchIcon');
+  const lbl = document.getElementById('matchLabel');
+  if(!cf){ el.className='pw-match'; return; }
+  el.className = 'pw-match show ' + (pw===cf ? 'ok' : 'bad');
+  ico.textContent = pw===cf ? '✓' : '✗';
+  lbl.textContent = pw===cf ? 'Passwords match' : 'Passwords do not match';
+}
+
+function toggleEye(inputId, btnId){
+  const input = document.getElementById(inputId);
+  const btn   = document.getElementById(btnId);
+  if(input.type==='password'){
+    input.type='text';
+    btn.style.color='var(--acc)';
+    btn.title='Hide password';
   } else {
-    newVib=0.994+(Math.random()*0.02-0.01);
-    score=-0.04-Math.random()*0.04;
-    temp=(72+Math.random()*4).toFixed(1);
-    ax=(Math.random()*0.015-0.0075).toFixed(3);
-    ay=(Math.random()*0.015-0.0075).toFixed(3);
-    az=newVib.toFixed(3);
+    input.type='password';
+    btn.style.color='var(--muted)';
+    btn.title='Show password';
+  }
+}
+
+// ── AUTH HELPERS ──────────────────────────────────────────────────────────────
+function showMsg(id, text, type){
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'auth-msg ' + type;
+  el.style.display = 'block';
+}
+function hideMsg(id){ document.getElementById(id).style.display='none'; }
+function setLoading(form, on){
+  const btn = document.getElementById(form+'Btn');
+  const ld  = document.getElementById(form+'Loading');
+  btn.disabled = on;
+  ld.className = 'auth-loading' + (on?' show':'');
+}
+
+function switchTab(tab){
+  document.getElementById('tabLogin').className  = 'auth-tab' + (tab==='login'?' active':'');
+  document.getElementById('tabSignup').className = 'auth-tab' + (tab==='signup'?' active':'');
+  document.getElementById('loginForm').style.display  = tab==='login'  ? '' : 'none';
+  document.getElementById('signupForm').style.display = tab==='signup' ? '' : 'none';
+  hideMsg('loginMsg'); hideMsg('signupMsg');
+}
+
+async function doSignup(){
+  const name     = document.getElementById('signupName').value.trim();
+  const email    = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  const confirm  = document.getElementById('signupConfirm').value;
+
+  if(!name)                    return showMsg('signupMsg','Please enter your full name.','error');
+  if(!email)                   return showMsg('signupMsg','Please enter your email address.','error');
+  if(password.length < 8)      return showMsg('signupMsg','Password must be at least 8 characters.','error');
+  if(!hasSpecialChar(password))return showMsg('signupMsg','Password must include at least one special character (e.g. @, #, $, !).','error');
+  if(password !== confirm)     return showMsg('signupMsg','Passwords do not match.','error');
+
+  setLoading('signup', true);
+  hideMsg('signupMsg');
+
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: name } }
+  });
+
+  setLoading('signup', false);
+
+  if(error){
+    showMsg('signupMsg', error.message, 'error');
+  } else if(data.user && data.user.identities && data.user.identities.length === 0){
+    showMsg('signupMsg', 'An account with this email already exists. Please sign in instead.', 'error');
+  } else {
+    // Insert into profiles table so name-based login works
+    if(data.user){
+      await sb.from('profiles').upsert({
+        id        : data.user.id,
+        email     : email,
+        full_name : name
+      });
+    }
+    // Check if email confirmation is required (session will be null if so)
+    if(!data.session){
+      // Email confirmation required — show confirm panel
+      showConfirmPanel(email);
+    } else {
+      // Email confirmation disabled — log straight in
+      showMsg('signupMsg', '✓ Account created! Signing you in…', 'success');
+      setTimeout(()=>showMainSite(data.user), 900);
+    }
+  }
+}
+
+// ── CONFIRM PANEL & RESEND ───────────────────────────────────────────────────
+let resendEmail = '';
+let resendTimer = null;
+
+function showConfirmPanel(email){
+  resendEmail = email;
+  document.getElementById('confirmedEmail').textContent = email;
+  document.getElementById('signupBtn').style.display       = 'none';
+  document.getElementById('signupLoading').style.display   = 'none';
+  document.getElementById('signupMsg').style.display       = 'none';
+  document.getElementById('signupDivider').style.display   = 'none';
+  document.getElementById('signupOrDivider').style.display = 'none';
+  document.getElementById('signupGoogleBtn').style.display = 'none';
+  document.getElementById('confirmPanel').style.display    = 'block';
+  // hide all signup fields
+  document.querySelectorAll('#signupForm .auth-field').forEach(el=>el.style.display='none');
+  startResendCountdown(60);
+}
+
+function resetSignup(){
+  resendEmail = '';
+  clearInterval(resendTimer);
+  document.getElementById('confirmPanel').style.display    = 'none';
+  document.getElementById('signupBtn').style.display       = '';
+  document.getElementById('signupDivider').style.display   = '';
+  document.getElementById('signupOrDivider').style.display = '';
+  document.getElementById('signupGoogleBtn').style.display = '';
+  document.querySelectorAll('#signupForm .auth-field').forEach(el=>el.style.display='');
+  ['signupName','signupEmail','signupPassword','signupConfirm']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('pwStrength').className='pw-strength';
+  document.getElementById('pwMatch').className='pw-match';
+  hideMsg('signupMsg'); hideMsg('resendMsg');
+}
+
+function startResendCountdown(seconds){
+  const btn  = document.getElementById('resendBtn');
+  const cd   = document.getElementById('resendCountdown');
+  const sec  = document.getElementById('countdownSecs');
+  let remaining = seconds;
+  btn.disabled = true;
+  btn.style.background   = 'transparent';
+  btn.style.borderColor  = 'var(--border2)';
+  btn.style.color        = 'var(--muted)';
+  btn.style.cursor       = 'not-allowed';
+  cd.style.display = 'block';
+  sec.textContent = remaining;
+  clearInterval(resendTimer);
+  resendTimer = setInterval(()=>{
+    remaining--;
+    sec.textContent = remaining;
+    if(remaining <= 0){
+      clearInterval(resendTimer);
+      cd.style.display = 'none';
+      btn.disabled = false;
+      btn.style.background  = 'var(--acc)';
+      btn.style.borderColor = 'var(--acc)';
+      btn.style.color       = '#000';
+      btn.style.cursor      = 'pointer';
+    }
+  }, 1000);
+}
+
+async function doResend(){
+  if(!resendEmail) return;
+  document.getElementById('resendBtn').disabled = true;
+  document.getElementById('resendLoading').className = 'auth-loading show';
+  hideMsg('resendMsg');
+
+  // Try resend first, fall back to signInWithOtp if resend fails
+  let error = null;
+
+  const { error: resendErr } = await sb.auth.resend({
+    type : 'signup',
+    email: resendEmail,
+    options: { emailRedirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/' }
+  });
+
+  if(resendErr){
+    // Fallback: use signInWithOtp which also sends a confirmation email
+    const { error: otpErr } = await sb.auth.signInWithOtp({
+      email: resendEmail,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/'
+      }
+    });
+    error = otpErr;
   }
 
-  heroData.shift();heroData.push(newVib);
-  heroChart.data.datasets[0].data=[...heroData];heroChart.update('none');
-  document.getElementById('hTemp').textContent=temp;
-  document.getElementById('hScore').textContent=score.toFixed(4);
-  document.getElementById('hX').textContent=ax;document.getElementById('hY').textContent=ay;document.getElementById('hZ').textContent=az;
-  if(heroAnomalyMode){
-    document.getElementById('hStatus').className='status-badge s-alert';document.getElementById('hStatus').textContent='⚠ ANOMALY';
-    document.getElementById('hLabel').textContent='Anomaly';document.getElementById('hBar').style.background='var(--red)';document.getElementById('hBar').style.width='15%';
+  document.getElementById('resendLoading').className = 'auth-loading';
+
+  if(error){
+    showMsg('resendMsg', '⚠ ' + error.message, 'error');
+    document.getElementById('resendBtn').disabled = false;
   } else {
-    document.getElementById('hStatus').className='status-badge s-normal';document.getElementById('hStatus').textContent='● NORMAL';
-    document.getElementById('hLabel').textContent='Normal';document.getElementById('hBar').style.background='var(--green)';document.getElementById('hBar').style.width='85%';
+    showMsg('resendMsg', '✓ Confirmation email resent! Check your inbox.', 'success');
+    startResendCountdown(60);
   }
-},120);
+}
 
-// ── MONITOR: AUTH + REAL DATA ─────────────────────────────────────────────────
-// Everything below is gated behind Supabase email/password auth and reads
-// real rows from anomaly_logs (written by inference.py's log_to_supabase()
-// for every scored window, not just anomalies).
-const SUPABASE_URL = "https://vpudvhanmyggzimwcgqo.supabase.co";
-// Public 'anon' key — safe client-side, only grants what Supabase Row Level
-// Security allows. The sign-in gate below is the actual access control.
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwdWR2aGFubXlnZ3ppbXdjZ3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTA2MTQsImV4cCI6MjA5NjA4NjYxNH0.iXIR8-UE5SIaZfAY-Uc6-LaUzYkqfI4LdSY_71V9WQs";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ── THEME TOGGLE ─────────────────────────────────────────────────────────────
+function toggleTheme(){
+  const html = document.documentElement;
+  const btn  = document.getElementById('themeToggle');
+  const isLight = html.getAttribute('data-theme') === 'light';
+  if(isLight){
+    html.removeAttribute('data-theme');
+    btn.textContent = '🌙';
+    btn.title = 'Switch to light mode';
+    localStorage.setItem('engineiq-theme','dark');
+  } else {
+    html.setAttribute('data-theme','light');
+    btn.textContent = '☀️';
+    btn.title = 'Switch to dark mode';
+    localStorage.setItem('engineiq-theme','light');
+  }
+}
 
-const monChart = new Chart(document.getElementById('monChart'),{
-  type:'line',
-  data:{labels:Array(60).fill(''),datasets:[{data:Array(60).fill(null),borderColor:'#2dd4bf',borderWidth:1.5,fill:true,backgroundColor:'rgba(45,212,191,0.04)',pointRadius:0,tension:0.3,spanGaps:true}]},
-  options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}
+// apply saved theme on page load
+(function(){
+  const saved = localStorage.getItem('engineiq-theme');
+  if(saved === 'light'){
+    document.documentElement.setAttribute('data-theme','light');
+    // update button after DOM loads
+    window.addEventListener('DOMContentLoaded', ()=>{
+      const btn = document.getElementById('themeToggle');
+      if(btn){ btn.textContent='☀️'; btn.title='Switch to dark mode'; }
+    });
+  }
+})();
+
+async function doGoogleAuth(){
+  // disable both google buttons to prevent double click
+  // Show processing overlay
+  const authBox = document.getElementById('authBox');
+  const oauthProc = document.getElementById('oauthProcessing');
+  if(authBox) authBox.style.display = 'none';
+  if(oauthProc){ oauthProc.style.display = 'flex'; }
+  ['loginGoogleBtn','signupGoogleBtn'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.disabled=true; }
+  });
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/',
+      skipBrowserRedirect: false,
+    }
+  });
+  if(error){
+    const authBox2 = document.getElementById('authBox');
+    const oauthProc2 = document.getElementById('oauthProcessing');
+    if(authBox2) authBox2.style.display = '';
+    if(oauthProc2) oauthProc2.style.display = 'none';
+    showMsg('loginMsg', error.message, 'error');
+    ['loginGoogleBtn','signupGoogleBtn'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){ el.disabled=false; }
+    });
+  }
+  // If no error, browser will redirect to Google — no further action needed
+}
+
+async function doLogin(){
+  const identifier = document.getElementById('loginIdentifier').value.trim();
+  const password   = document.getElementById('loginPassword').value;
+
+  if(!identifier) return showMsg('loginMsg','Please enter your email or full name.','error');
+  if(!password)   return showMsg('loginMsg','Please enter your password.','error');
+
+  setLoading('login', true);
+  hideMsg('loginMsg');
+
+  // Determine if the user typed an email or a full name
+  const isEmail = identifier.includes('@');
+  let emailToUse = identifier;
+
+  if(!isEmail){
+    // Look up the email by full name stored in user metadata via our profiles table
+    // We query the profiles table where full_name matches
+    const { data: profiles, error: lookupErr } = await sb
+      .from('profiles')
+      .select('email')
+      .ilike('full_name', identifier)
+      .limit(1);
+
+    if(lookupErr || !profiles || profiles.length === 0){
+      setLoading('login', false);
+      return showMsg('loginMsg','No account found with that name. Try using your email address instead.','error');
+    }
+    emailToUse = profiles[0].email;
+  }
+
+  const { data, error } = await sb.auth.signInWithPassword({ email: emailToUse, password });
+
+  setLoading('login', false);
+
+  if(error){
+    if(error.message.toLowerCase().includes('invalid login credentials')){
+      showMsg('loginMsg','Incorrect email/name or password. Please try again.','error');
+    } else {
+      showMsg('loginMsg', error.message, 'error');
+    }
+  } else {
+    showMainSite(data.user);
+  }
+}
+
+async function doSignOut(){
+  await sb.auth.signOut();
+  if(simInterval){ clearInterval(simInterval); simInterval=null; chartsReady=false; }
+  if(monitorPollInterval){ clearInterval(monitorPollInterval); monitorPollInterval=null; }
+  document.getElementById('mainSite').style.display    = 'none';
+  document.getElementById('authOverlay').style.display = 'flex';
+  // clear forms
+  ['loginIdentifier','loginPassword','signupName','signupEmail','signupPassword','signupConfirm']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  // reset strength/match indicators
+  document.getElementById('pwStrength').className='pw-strength';
+  document.getElementById('pwMatch').className='pw-match';
+  switchTab('login');
+}
+
+function showMainSite(user){
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('mainSite').style.display    = 'block';
+  const email = user?.email || '';
+  document.getElementById('navUserEmail').textContent  = email;
+  initCharts();
+  initSimulation();
+  initMonitorPolling();
+  initScrollReveal();
+}
+
+// ── CHECK SESSION ON LOAD ─────────────────────────────────────────────────────
+window.addEventListener('load', async ()=>{
+
+  // Show spinner immediately if we have a ?code= param (PKCE OAuth redirect)
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasCode = urlParams.has('code');
+  if(hasCode){
+    const authBox  = document.getElementById('authBox');
+    const oauthProc= document.getElementById('oauthProcessing');
+    if(authBox)    authBox.style.display   = 'none';
+    if(oauthProc)  oauthProc.style.display = 'flex';
+  }
+
+  // Set up auth state listener
+  sb.auth.onAuthStateChange((event, session)=>{
+    if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
+      // Clean URL then show dashboard
+      history.replaceState(null, '', window.location.pathname);
+      showMainSite(session.user);
+    }
+    if(event === 'SIGNED_OUT'){
+      document.getElementById('mainSite').style.display    = 'none';
+      document.getElementById('authOverlay').style.display = 'flex';
+      if(simInterval){ clearInterval(simInterval); simInterval=null; chartsReady=false; }
+      if(monitorPollInterval){ clearInterval(monitorPollInterval); monitorPollInterval=null; }
+    }
+  });
+
+  if(hasCode){
+    // PKCE code exchange — manually call getSession to trigger the exchange
+    // The SDK will process the code, set the session, and fire SIGNED_IN
+    const { data: { session }, error } = await sb.auth.getSession();
+    if(session && session.user){
+      history.replaceState(null, '', window.location.pathname);
+      showMainSite(session.user);
+    } else if(error){
+      // Exchange failed — show login screen with error
+      const authBox  = document.getElementById('authBox');
+      const oauthProc= document.getElementById('oauthProcessing');
+      if(authBox)   authBox.style.display   = '';
+      if(oauthProc) oauthProc.style.display = 'none';
+      showMsg('loginMsg', 'Google sign-in failed. Please try again.', 'error');
+    }
+    return;
+  }
+
+  // Normal page load — check for existing session
+  const { data: { session } } = await sb.auth.getSession();
+  if(session && session.user){
+    showMainSite(session.user);
+  }
 });
-const scoreChart = new Chart(document.getElementById('scoreChart'),{
-  type:'line',
-  data:{labels:Array(60).fill(''),datasets:[
-    {data:Array(60).fill(null),borderColor:'#2dd4bf',borderWidth:1.5,fill:true,backgroundColor:'rgba(45,212,191,0.04)',pointRadius:0,tension:0.3,label:'Score',spanGaps:true},
-    {data:Array(60).fill(-0.50),borderColor:'#ff3f3f',borderWidth:1,borderDash:[4,4],pointRadius:0,label:'Threshold'}
-  ]},
-  options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:true,min:-0.8,max:0.1,ticks:{display:false},grid:{color:'rgba(255,255,255,0.03)'},border:{display:false}}}}
-});
 
+// ── CHARTS & SIMULATION (init only after main site shown) ─────────────────────
+let heroChart, monChart, scoreChart;
+let heroData, monData, scoreData;
+let chartsReady = false;
+
+function initCharts(){
+  if(chartsReady) return;
+  chartsReady = true;
+
+  heroData  = Array.from({length:40},()=>(Math.random()*0.03-0.015+0.994));
+  monData   = Array.from({length:60},()=>(Math.random()*0.02-0.01+0.994));
+  scoreData = Array.from({length:60},()=>(-0.04-Math.random()*0.03));
+
+  heroChart = new Chart(document.getElementById('heroChart'),{
+    type:'line',
+    data:{labels:Array(40).fill(''),datasets:[{data:heroData,borderColor:'#e8ff47',borderWidth:1.5,fill:true,backgroundColor:'rgba(232,255,71,0.04)',pointRadius:0,tension:0.4}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}
+  });
+  monChart = new Chart(document.getElementById('monChart'),{
+    type:'line',
+    data:{labels:Array(60).fill(''),datasets:[{data:monData,borderColor:'#e8ff47',borderWidth:1.5,fill:true,backgroundColor:'rgba(232,255,71,0.04)',pointRadius:0,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false,min:0.85,max:1.1}}}
+  });
+  scoreChart = new Chart(document.getElementById('scoreChart'),{
+    type:'line',
+    data:{labels:Array(60).fill(''),datasets:[
+      {data:scoreData,borderColor:'#e8ff47',borderWidth:1.5,fill:true,backgroundColor:'rgba(232,255,71,0.04)',pointRadius:0,tension:0.3,label:'Score'},
+      {data:Array(60).fill(-0.50),borderColor:'#ff3f3f',borderWidth:1,borderDash:[4,4],pointRadius:0,label:'Threshold'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:true,min:-0.8,max:0.1,ticks:{display:false},grid:{color:'rgba(255,255,255,0.03)'},border:{display:false}}}}
+  });
+}
+
+let simInterval = null;
+function initSimulation(){
+  // Hero card only — decorative marketing preview above the fold, never
+  // claimed to be live. The #monitor section below reads real data from
+  // Supabase instead (see initMonitorPolling()), which is what changed here.
+  if(simInterval) return;
+  let anomalyTimer=0,anomalyMode=false;
+
+  simInterval = setInterval(()=>{
+    anomalyTimer++;
+    if(anomalyTimer%120===0){anomalyMode=true;setTimeout(()=>{anomalyMode=false},3500);}
+    let newVib,score,temp,ax,ay,az;
+    if(anomalyMode){
+      newVib=0.994+(Math.random()*0.12-0.06);score=-0.53-Math.random()*0.08;
+      temp=(78+Math.random()*8).toFixed(1);ax=(0.04+Math.random()*0.05).toFixed(3);
+      ay=(-0.03-Math.random()*0.04).toFixed(3);az=newVib.toFixed(3);
+    } else {
+      newVib=0.994+(Math.random()*0.02-0.01);score=-0.04-Math.random()*0.04;
+      temp=(72+Math.random()*4).toFixed(1);ax=(Math.random()*0.015-0.0075).toFixed(3);
+      ay=(Math.random()*0.015-0.0075).toFixed(3);az=newVib.toFixed(3);
+    }
+    heroData.shift();heroData.push(newVib);
+    heroChart.data.datasets[0].data=[...heroData];heroChart.update('none');
+    document.getElementById('hTemp').textContent=temp;
+    document.getElementById('hScore').textContent=score.toFixed(4);
+    document.getElementById('hX').textContent=ax;document.getElementById('hY').textContent=ay;document.getElementById('hZ').textContent=az;
+    if(anomalyMode){
+      document.getElementById('hStatus').className='status-badge s-alert';document.getElementById('hStatus').textContent='⚠ ANOMALY';
+      document.getElementById('hLabel').textContent='Anomaly';document.getElementById('hBar').style.background='var(--red)';document.getElementById('hBar').style.width='15%';
+    } else {
+      document.getElementById('hStatus').className='status-badge s-normal';document.getElementById('hStatus').textContent='● NORMAL';
+      document.getElementById('hLabel').textContent='Normal';document.getElementById('hBar').style.background='var(--green)';document.getElementById('hBar').style.width='85%';
+    }
+  },120);
+}
+
+// ── MONITOR: REAL DATA FROM SUPABASE ───────────────────────────────────────────
+// Reads anomaly_logs (written by inference.py's log_to_supabase() for every
+// scored window, not just anomalies — see supabase_migration.sql). RLS
+// requires the 'authenticated' role to read, which the signed-in `sb`
+// session already satisfies.
 function getSevClass(s){return{NORMAL:'sev-normal',LOW:'sev-low',MEDIUM:'sev-med',HIGH:'sev-high'}[s]||'sev-normal'}
 function getScoreClass(s){return{NORMAL:'score-normal',LOW:'score-low',MEDIUM:'score-med',HIGH:'score-high'}[s]||'score-normal'}
 function getSevColour(s){return{NORMAL:'#39ff7a',LOW:'#ffb545',MEDIUM:'#ff6b35',HIGH:'#ff3f3f'}[s]||'#888'}
@@ -675,9 +1384,7 @@ function tempFromRow(row){
   return k!=null ? k - 273.15 : null;
 }
 
-let pollTimer=null;
-
-async function fetchAndRender(){
+async function fetchAndRenderMonitor(){
   const [rowsRes, totalRes, normalRes, lowRes, medRes, highRes] = await Promise.all([
     sb.from('anomaly_logs').select('*').order('timestamp',{ascending:false}).limit(60),
     sb.from('anomaly_logs').select('*',{count:'exact',head:true}),
@@ -687,10 +1394,7 @@ async function fetchAndRender(){
     sb.from('anomaly_logs').select('*',{count:'exact',head:true}).eq('severity','HIGH'),
   ]);
 
-  if(rowsRes.error){
-    console.error('Supabase fetch failed:', rowsRes.error);
-    return;
-  }
+  if(rowsRes.error){ console.error('Supabase fetch failed:', rowsRes.error); return; }
 
   const rows = rowsRes.data || [];
   if(rows.length===0){
@@ -703,10 +1407,10 @@ async function fetchAndRender(){
   const latest = rows[0];
   const pad = arr => arr.length<60 ? [...Array(60-arr.length).fill(null),...arr] : arr;
 
-  scoreChart.data.datasets[0].data = pad(chrono.map(r=>r.anomaly_score));
-  scoreChart.update('none');
   monChart.data.datasets[0].data = pad(chrono.map(r=>axisFromRow(r,'accZ')));
   monChart.update('none');
+  scoreChart.data.datasets[0].data = pad(chrono.map(r=>r.anomaly_score));
+  scoreChart.update('none');
 
   const scoreEl = document.getElementById('mScore');
   scoreEl.textContent = latest.anomaly_score.toFixed(4);
@@ -728,7 +1432,6 @@ async function fetchAndRender(){
   document.getElementById('mZ').textContent = az!=null ? az.toFixed(3) : '—';
 
   document.getElementById('alertBanner').style.display = latest.is_anomaly ? 'block' : 'none';
-
   document.getElementById('countNormal').textContent = normalRes.count || 0;
   document.getElementById('countLow').textContent    = lowRes.count || 0;
   document.getElementById('countMed').textContent    = medRes.count || 0;
@@ -742,75 +1445,19 @@ async function fetchAndRender(){
     </tr>`).join('');
 }
 
-const loginGate    = document.getElementById('monitorLoginGate');
-const monitorPanel = document.getElementById('monitorContent');
-const loginForm    = document.getElementById('monitorLoginForm');
-const loginBtn     = document.getElementById('monitorLoginBtn');
-const loginError   = document.getElementById('monitorLoginError');
-
-function showLoginGate(){
-  loginGate.style.display='block';
-  monitorPanel.style.display='none';
-  if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
-}
-function enterMonitor(session){
-  loginGate.style.display='none';
-  monitorPanel.style.display='grid';
-  document.getElementById('monitorUserEmail').textContent = session.user.email;
-  fetchAndRender();
-  if(pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(fetchAndRender, 4000);
+let monitorPollInterval = null;
+function initMonitorPolling(){
+  if(monitorPollInterval) return;
+  fetchAndRenderMonitor();
+  monitorPollInterval = setInterval(fetchAndRenderMonitor, 4000);
 }
 
-loginForm.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  loginError.textContent='';
-  loginBtn.disabled=true;
-  loginBtn.textContent='Signing in...';
-  const email = document.getElementById('monitorEmail').value;
-  const password = document.getElementById('monitorPassword').value;
-  const {data,error} = await sb.auth.signInWithPassword({email,password});
-  loginBtn.disabled=false;
-  loginBtn.textContent='Log in';
-  if(error){ loginError.textContent = error.message; return; }
-  enterMonitor(data.session);
-});
-
-document.getElementById('monitorLogoutBtn').addEventListener('click', async ()=>{
-  await sb.auth.signOut();
-  showLoginGate();
-});
-
-// supabase-js defaults to PKCE + detectSessionInUrl:true, so it handles the
-// whole round trip itself — generates/stores the code_verifier, redirects
-// to Google, and on return exchanges the ?code=... in the URL for a session
-// automatically before this script even runs. No manual code exchange
-// needed here, unlike the Python/Streamlit side of this app.
-document.getElementById('monitorGoogleBtn').addEventListener('click', async ()=>{
-  loginError.textContent='';
-  // No #monitor fragment here on purpose: it would ride along inside the
-  // redirect_to value sent to Supabase and could fail the exact-match
-  // check against whatever plain URL you register in Authentication → URL
-  // Configuration → Redirect URLs. Land on the plain page instead — the
-  // session check on load still shows the monitor content either way, the
-  // user just scrolls down once.
-  const {error} = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin + window.location.pathname }
-  });
-  if(error) loginError.textContent = error.message;
-});
-
-sb.auth.getSession().then(({data})=>{
-  if(data.session) enterMonitor(data.session);
-  else showLoginGate();
-});
-
-// ── SCROLL REVEAL ─────────────────────────────────────────────────────────────
-const obs=new IntersectionObserver(entries=>{
-  entries.forEach((e,i)=>{if(e.isIntersecting)setTimeout(()=>e.target.classList.add('visible'),i*80)});
-},{threshold:0.1});
-document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+function initScrollReveal(){
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach((e,i)=>{if(e.isIntersecting)setTimeout(()=>e.target.classList.add('visible'),i*80)});
+  },{threshold:0.1});
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+}
 </script>
 </body>
 </html>
