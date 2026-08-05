@@ -15,6 +15,7 @@
 #   6. Saves model.pkl and scaler.pkl
 
 import os
+import json
 import joblib
 import numpy as np
 import pandas as pd
@@ -27,6 +28,7 @@ from preprocessor import process_dataframe, normalise
 DATASET_PATH  = 'ai4i2020.csv'       # must be in same folder as this script
 MODEL_PATH    = 'model.pkl'           # where the trained model gets saved
 SCALER_PATH   = 'scaler.pkl'          # where the scaler gets saved
+THRESHOLD_PATH = 'threshold.json'     # auto-tuned anomaly threshold (see save_model)
 WINDOW_SIZE   = 50                    # rows per feature window
 STEP          = 25                    # window slide step (50% overlap)
 CONTAMINATION = 0.05                  # expected % of anomalies (5%)
@@ -170,6 +172,20 @@ def evaluate_model(model, X_normal_scaled, X_fault_scaled):
     return scores_normal, None
 
 
+def compute_threshold(scores_normal):
+    """
+    Derive the anomaly-score cutoff from CONTAMINATION instead of hand-picking
+    a number. score_samples() returns a continuous score per window (lower =
+    more anomalous); the CONTAMINATION-th percentile of the NORMAL training
+    scores is, by definition, the cutoff below which ~CONTAMINATION fraction
+    of normal data itself falls — i.e. it reproduces the same "expected ~5%
+    of even normal operation looks borderline" assumption already baked into
+    the model's own contamination parameter, rather than a threshold chosen
+    by eyeballing the score distribution plot.
+    """
+    return float(np.percentile(scores_normal, CONTAMINATION * 100))
+
+
 def plot_results(scores_normal, scores_fault, threshold=-0.50):
     """Plot anomaly score distributions so you can visualise the model."""
     print("── Generating score distribution plot ───────────────")
@@ -206,13 +222,17 @@ def plot_results(scores_normal, scores_fault, threshold=-0.50):
     print("  ✓ Plot saved as score_distribution.png\n")
 
 
-def save_model(model, scaler):
-    """Save the trained model and scaler to disk."""
+def save_model(model, scaler, threshold):
+    """Save the trained model, scaler, and auto-tuned threshold to disk."""
     print("── Saving model files ───────────────────────────────")
     joblib.dump(model, MODEL_PATH)
     joblib.dump(scaler, SCALER_PATH)
-    print(f"  ✓ Model  saved → {MODEL_PATH}")
-    print(f"  ✓ Scaler saved → {SCALER_PATH}")
+    with open(THRESHOLD_PATH, 'w') as f:
+        json.dump({'threshold': threshold, 'contamination': CONTAMINATION}, f, indent=2)
+    print(f"  ✓ Model     saved → {MODEL_PATH}")
+    print(f"  ✓ Scaler    saved → {SCALER_PATH}")
+    print(f"  ✓ Threshold saved → {THRESHOLD_PATH} "
+          f"({threshold:.4f}, auto-tuned from {CONTAMINATION*100:.0f}% contamination)")
     print()
 
 
@@ -245,12 +265,15 @@ if __name__ == '__main__':
     
     # Step 4 — Evaluate
     scores_normal, scores_fault = evaluate_model(model, X_normal_scaled, X_fault_scaled)
-    
-    # Step 5 — Plot results
-    plot_results(scores_normal, scores_fault)
-    
-    # Step 6 — Save model and scaler
-    save_model(model, scaler)
+
+    # Step 5 — Auto-tune the anomaly threshold from the contamination rate
+    threshold = compute_threshold(scores_normal)
+
+    # Step 6 — Plot results
+    plot_results(scores_normal, scores_fault, threshold=threshold)
+
+    # Step 7 — Save model, scaler, and threshold
+    save_model(model, scaler, threshold)
     
     # Step 7 — Summary
     print_summary()

@@ -19,6 +19,7 @@
 #        python train_bluetooth.py
 
 import os
+import json
 import joblib
 import numpy as np
 import pandas as pd
@@ -27,10 +28,11 @@ from sklearn.ensemble import IsolationForest
 from preprocessor import process_dataframe, normalise
 
 # ── SETTINGS ──────────────────────────────────────────────────────────────────
-BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
-DATASET_PATH  = os.path.join(BASE_DIR, 'ble_baseline_normal.csv')
-MODEL_PATH    = os.path.join(BASE_DIR, 'model_ble.pkl')
-SCALER_PATH   = os.path.join(BASE_DIR, 'scaler_ble.pkl')
+BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
+DATASET_PATH   = os.path.join(BASE_DIR, 'ble_baseline_normal.csv')
+MODEL_PATH     = os.path.join(BASE_DIR, 'model_ble.pkl')
+SCALER_PATH    = os.path.join(BASE_DIR, 'scaler_ble.pkl')
+THRESHOLD_PATH = os.path.join(BASE_DIR, 'threshold_ble.json')
 FEATURE_COLS  = ['accX', 'accY', 'accZ', 'temp']
 WINDOW_SIZE   = 50       # must match WINDOW_SIZE in inference.py
 STEP          = 25       # 50% overlap
@@ -128,19 +130,27 @@ def plot_scores(scores):
     print("  ✓ Plot saved as score_distribution_ble.png\n")
 
 
-def save_model(model, scaler):
+def save_model(model, scaler, threshold):
     print("── Saving BLE model files ───────────────────────────")
     joblib.dump(model, MODEL_PATH)
     joblib.dump(scaler, SCALER_PATH)
-    print(f"  ✓ Model  saved → {MODEL_PATH}")
-    print(f"  ✓ Scaler saved → {SCALER_PATH}\n")
+    with open(THRESHOLD_PATH, 'w') as f:
+        json.dump({'threshold': threshold, 'contamination': CONTAMINATION}, f, indent=2)
+    print(f"  ✓ Model     saved → {MODEL_PATH}")
+    print(f"  ✓ Scaler    saved → {SCALER_PATH}")
+    print(f"  ✓ Threshold saved → {THRESHOLD_PATH} "
+          f"({threshold:.4f}, auto-tuned from {CONTAMINATION*100:.0f}% contamination)\n")
 
 
 if __name__ == '__main__':
     df = load_baseline(DATASET_PATH)
     model, scaler, scores = train_and_evaluate(df)
+    # Same derivation as train.py's compute_threshold(): the CONTAMINATION-th
+    # percentile of the normal baseline's own scores, so this model gets its
+    # own correctly-calibrated cutoff instead of inheriting the AI4I model's.
+    threshold = float(np.percentile(scores, CONTAMINATION * 100))
     plot_scores(scores)
-    save_model(model, scaler)
+    save_model(model, scaler, threshold)
 
     print("=" * 55)
     print("  BLE TRAINING COMPLETE")

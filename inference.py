@@ -44,7 +44,16 @@ RESULTS_PATH    = os.path.join(BASE_DIR, 'inference_results.csv')
 # these feature names and cannot meaningfully score them.
 BLE_MODEL_PATH  = os.path.join(BASE_DIR, 'model_ble.pkl')
 BLE_SCALER_PATH = os.path.join(BASE_DIR, 'scaler_ble.pkl')
-THRESHOLD       = -0.50
+# Auto-tuned by train.py/train_bluetooth.py from CONTAMINATION (the
+# percentile of normal-data scores that matches the model's own expected
+# anomaly rate) — see compute_threshold() in train.py. Each model gets its
+# own file since the AI4I and BLE models score on different scales; a
+# single hardcoded constant shared between them would be a coincidence,
+# not a calibration. DEFAULT_THRESHOLD is only a fallback for a model
+# trained before this existed.
+THRESHOLD_PATH     = os.path.join(BASE_DIR, 'threshold.json')
+BLE_THRESHOLD_PATH = os.path.join(BASE_DIR, 'threshold_ble.json')
+DEFAULT_THRESHOLD  = -0.50
 WINDOW_SIZE     = 50
 SIMULATE_DELAY  = 0.1       # seconds between simulated readings
 
@@ -82,6 +91,19 @@ def load_model():
         exit(1)
 
 
+def load_threshold(path, model_label):
+    try:
+        with open(path) as f:
+            value = float(json.load(f)['threshold'])
+        print(f"✓ Threshold loaded ← {path} ({value:.4f})\n")
+        return value
+    except (FileNotFoundError, KeyError, ValueError, TypeError):
+        print(f"⚠ {path} not found or unreadable — using fallback "
+              f"threshold {DEFAULT_THRESHOLD} for the {model_label} model.")
+        print(f"  Retrain to auto-tune this from the contamination rate.\n")
+        return DEFAULT_THRESHOLD
+
+
 def load_ble_model():
     """
     Load the BLE-specific model (trained on real accX/accY/accZ/temp data via
@@ -112,10 +134,10 @@ def connect_supabase():
 
 
 # ── SEVERITY ──────────────────────────────────────────────────────────────────
-def get_severity(score):
-    if score > THRESHOLD: return 'NORMAL'
-    if score > -0.52:     return 'LOW'
-    if score > -0.55:     return 'MEDIUM'
+def get_severity(score, threshold):
+    if score > threshold:        return 'NORMAL'
+    if score > threshold - 0.02: return 'LOW'
+    if score > threshold - 0.05: return 'MEDIUM'
     return 'HIGH'
 
 
@@ -156,7 +178,7 @@ def log_to_supabase(client, result, window_df, source):
 
 
 # ── SCORE A WINDOW ────────────────────────────────────────────────────────────
-def score_window(model, scaler, window_df, fs=1.0):
+def score_window(model, scaler, window_df, threshold, fs=1.0):
     features   = extract_features(window_df, fs=fs)
     feature_df = pd.DataFrame([features]).fillna(0)
 
@@ -193,14 +215,14 @@ def score_window(model, scaler, window_df, fs=1.0):
     scaled = scaler.transform(feature_df)
 
     score    = model.score_samples(scaled)[0]
-    severity = get_severity(score)
+    severity = get_severity(score, threshold)
     return {
         'score'     : round(float(score), 4),
         'severity'  : severity,
-        # bool(), not the bare numpy.bool_ that `score < THRESHOLD` produces —
+        # bool(), not the bare numpy.bool_ that `score < threshold` produces —
         # numpy.bool_ isn't JSON-serializable, which silently broke every
         # Supabase insert once is_anomaly was added to the logged record.
-        'is_anomaly': bool(score < THRESHOLD),
+        'is_anomaly': bool(score < threshold),
         'timestamp' : datetime.now().isoformat()
     }
 
@@ -241,6 +263,8 @@ def run_simulation(model, scaler, supabase):
     print(f"\n  {'Timestamp':<12} {'Score':>8}  {'Severity':<8}  Status")
     print(f"  {'-'*12} {'-'*8}  {'-'*8}  {'-'*20}")
 
+    threshold = load_threshold(THRESHOLD_PATH, 'AI4I')
+
     # Check dataset exists
     try:
         df = pd.read_csv(DATASET_PATH)
@@ -273,7 +297,7 @@ def run_simulation(model, scaler, supabase):
 
             buffer    = buffer[-WINDOW_SIZE:]
             window_df = pd.DataFrame(buffer)[feature_cols]
-            result    = score_window(model, scaler, window_df)
+            result    = score_window(model, scaler, window_df, threshold)
             result['actual_failure'] = buffer[-1]['actual_failure']
             results.append(result)
             window_count += 1
@@ -329,6 +353,8 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase):
         run_simulation(ai4i_model, ai4i_scaler, supabase)
         return
 
+    ble_threshold = load_threshold(BLE_THRESHOLD_PATH, 'BLE')
+
     buffer       = []
     feature_cols = ['accX', 'accY', 'accZ', 'temp']
 
@@ -375,7 +401,7 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase):
                 if len(buffer) >= WINDOW_SIZE:
                     buffer    = buffer[-WINDOW_SIZE:]
                     window_df = pd.DataFrame(buffer)[feature_cols]
-                    result    = score_window(ble_model, ble_scaler, window_df, fs=50.0)
+                    result    = score_window(ble_model, ble_scaler, window_df, ble_threshold, fs=50.0)
 
                     print_result(result)
 
