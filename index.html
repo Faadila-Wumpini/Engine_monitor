@@ -860,6 +860,10 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
 
 <script>
 // ── SUPABASE INIT ─────────────────────────────────────────────────────────────
+// Captured BEFORE createClient() runs, on purpose — see detectSessionInUrl
+// note below for why this can't be read later.
+const oauthCode = new URLSearchParams(window.location.search).get('code');
+
 const SUPABASE_URL = 'https://vpudvhanmyggzimwcgqo.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwdWR2aGFubXlnZ3ppbXdjZ3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTA2MTQsImV4cCI6MjA5NjA4NjYxNH0.iXIR8-UE5SIaZfAY-Uc6-LaUzYkqfI4LdSY_71V9WQs';
 const { createClient } = supabase;
@@ -867,7 +871,16 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     flowType: 'pkce',
     autoRefreshToken: true,
-    detectSessionInUrl: true,
+    // false, and exchanged manually in the 'load' handler below via
+    // exchangeCodeForSession(oauthCode). With this on, the SDK exchanges
+    // ?code=... automatically the instant createClient() runs — silently,
+    // with no error surfaced anywhere if it fails, and it strips the code
+    // from the URL before our own 'load' handler even gets a chance to see
+    // it. That combination is exactly what made Google sign-in fail with
+    // zero visible error or console output. Doing it ourselves means we
+    // get the actual error message back, and there's only ever one
+    // consumer of the single-use code instead of two racing to grab it.
+    detectSessionInUrl: false,
     persistSession: true,
   }
 });
@@ -1242,39 +1255,9 @@ function showMainSite(user){
 // ── CHECK SESSION ON LOAD ─────────────────────────────────────────────────────
 window.addEventListener('load', async ()=>{
 
-  // Show spinner immediately if we have a ?code= param (PKCE OAuth redirect)
-  const urlParams = new URLSearchParams(window.location.search);
-  const hasCode = urlParams.has('code');
-  if(hasCode){
-    const authBox  = document.getElementById('authBox');
-    const oauthProc= document.getElementById('oauthProcessing');
-    if(authBox)    authBox.style.display   = 'none';
-    if(oauthProc)  oauthProc.style.display = 'flex';
-  }
-
-  // Set up auth state listener FIRST, before anything else touches sb.auth.
-  // detectSessionInUrl:true (see createClient options above) already
-  // exchanges ?code=... automatically — it starts doing this the instant
-  // createClient() runs, which is long before this 'load' handler fires, so
-  // by the time we get here the exchange may already be done (or already
-  // failed) and the code already stripped from the URL. onAuthStateChange
-  // is the one thing guaranteed to reflect the correct outcome regardless
-  // of that timing: per the SDK's contract it fires once immediately with
-  // the CURRENT session as INITIAL_SESSION when you register it, then again
-  // for any later change — so it can't miss the auto-exchange's result the
-  // way a manual getSession() call here previously could (that used to
-  // silently return {session:null, error:null} if the auto-exchange had
-  // already failed and cleaned up before this ran, leaving the page stuck
-  // on the login screen with no error shown at all).
-  let oauthSettled = false;
-  sb.auth.onAuthStateChange((event, session)=>{
-    if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session){
-      oauthSettled = true;
-      history.replaceState(null, '', window.location.pathname);
-      showMainSite(session.user);
-    }
+  // Set up the sign-out listener regardless of how we got here.
+  sb.auth.onAuthStateChange((event)=>{
     if(event === 'SIGNED_OUT'){
-      oauthSettled = true;
       document.getElementById('mainSite').style.display    = 'none';
       document.getElementById('authOverlay').style.display = 'flex';
       if(simInterval){ clearInterval(simInterval); simInterval=null; chartsReady=false; }
@@ -1282,20 +1265,27 @@ window.addEventListener('load', async ()=>{
     }
   });
 
-  if(hasCode){
-    // Safety net: if we came back from Google but nothing above resolved
-    // the login within a few seconds, the automatic exchange failed
-    // silently — surface that instead of leaving the spinner (or a blank
-    // reversion to the login screen) with no explanation.
-    setTimeout(()=>{
-      if(oauthSettled) return;
-      history.replaceState(null, '', window.location.pathname);
-      const authBox  = document.getElementById('authBox');
-      const oauthProc= document.getElementById('oauthProcessing');
+  if(oauthCode){
+    // Returning from Google. detectSessionInUrl is off (see createClient
+    // options above), so this is the ONLY place the code gets exchanged —
+    // no race with an automatic in-SDK attempt, and we get the real error
+    // back if it fails instead of nothing at all.
+    const authBox  = document.getElementById('authBox');
+    const oauthProc= document.getElementById('oauthProcessing');
+    if(authBox)    authBox.style.display   = 'none';
+    if(oauthProc)  oauthProc.style.display = 'flex';
+
+    const { data, error } = await sb.auth.exchangeCodeForSession(oauthCode);
+    history.replaceState(null, '', window.location.pathname);
+
+    if(data?.session?.user){
+      showMainSite(data.session.user);
+    } else {
       if(authBox)   authBox.style.display   = '';
       if(oauthProc) oauthProc.style.display = 'none';
-      showMsg('loginMsg', 'Google sign-in failed. Please try again.', 'error');
-    }, 6000);
+      console.error('Google sign-in exchange failed:', error);
+      showMsg('loginMsg', error?.message ? `Google sign-in failed: ${error.message}` : 'Google sign-in failed. Please try again.', 'error');
+    }
     return;
   }
 
