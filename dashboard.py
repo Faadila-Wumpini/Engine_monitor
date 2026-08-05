@@ -70,6 +70,17 @@ def get_supabase_client():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
+@st.cache_data(ttl=30)
+def check_supabase_connection():
+    """
+    Lightweight reachability check for the System Status sidebar. Cached for
+    30s so the dashboard's auto-refresh (every 1-10s) doesn't hit Supabase
+    on every single rerun — failures aren't cached (Streamlit re-raises
+    without caching on error), so a real outage still shows up promptly.
+    """
+    get_supabase_client().table("anomaly_logs").select("timestamp").limit(1).execute()
+
+
 def require_login():
     """
     Gate the entire dashboard behind Supabase auth (email/password or
@@ -263,6 +274,12 @@ with st.sidebar:
         st.success("✓ Inference running")
     except:
         st.info("ℹ Run inference.py to start")
+
+    try:
+        check_supabase_connection()
+        st.success("✓ Supabase connected")
+    except Exception as e:
+        st.error(f"✗ Supabase unreachable — {e}")
 
 
 # ── MAIN CONTENT ──────────────────────────────────────────────────────────────
