@@ -862,7 +862,14 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
 // ── SUPABASE INIT ─────────────────────────────────────────────────────────────
 // Captured BEFORE createClient() runs, on purpose — see detectSessionInUrl
 // note below for why this can't be read later.
-const oauthCode = new URLSearchParams(window.location.search).get('code');
+const oauthParams          = new URLSearchParams(window.location.search);
+const oauthCode             = oauthParams.get('code');
+// Supabase redirects back with these instead of ?code=... when IT fails to
+// complete the OAuth flow server-side (e.g. exchanging the code with the
+// provider) — as opposed to a failure on this page's end. Was previously
+// not handled at all, so a Supabase-side failure like this showed up as a
+// silent bounce back to the login screen with zero explanation.
+const oauthErrorDescription = oauthParams.get('error_description');
 
 const SUPABASE_URL = 'https://vpudvhanmyggzimwcgqo.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwdWR2aGFubXlnZ3ppbXdjZ3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTA2MTQsImV4cCI6MjA5NjA4NjYxNH0.iXIR8-UE5SIaZfAY-Uc6-LaUzYkqfI4LdSY_71V9WQs';
@@ -1264,6 +1271,18 @@ window.addEventListener('load', async ()=>{
       if(monitorPollInterval){ clearInterval(monitorPollInterval); monitorPollInterval=null; }
     }
   });
+
+  if(oauthErrorDescription){
+    // Supabase itself failed the OAuth flow server-side and redirected
+    // back with the reason — show it directly rather than the generic
+    // message, since it usually points straight at the misconfiguration
+    // (e.g. "Unable to exchange external code" = provider credentials
+    // mismatch between Supabase and the identity provider's console).
+    history.replaceState(null, '', window.location.pathname);
+    console.error('OAuth provider error:', oauthErrorDescription);
+    showMsg('loginMsg', `Google sign-in failed: ${oauthErrorDescription}`, 'error');
+    return;
+  }
 
   if(oauthCode){
     // Returning from Google. detectSessionInUrl is off (see createClient
