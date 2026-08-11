@@ -88,7 +88,7 @@
 [data-theme="light"] .sensor-card.vib::after{background:linear-gradient(90deg,#1a56db,transparent);}
 [data-theme="light"] .sensor-card.temp::after{background:linear-gradient(90deg,#0e7fc0,transparent);}
 [data-theme="light"] .step-tech{color:#1a56db;}
-[data-theme="light"] .step-n{color:#c8d8e8;}
+[data-theme="light"] .step-n{color:#8090ab;}
 [data-theme="light"] .nav-links a:hover{color:#1a56db;}
 [data-theme="light"] .btn-p{background:#1a56db;color:#fff;}
 [data-theme="light"] .btn-p:hover{background:#1447b8;}
@@ -360,7 +360,7 @@ section{padding:6rem 3rem}
 .step{padding:1.75rem 1.5rem;border-right:1px solid var(--border);transition:background 0.2s;cursor:default}
 .step:last-child{border-right:none}
 .step:hover{background:var(--s2)}
-.step-n{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--border2);line-height:1;margin-bottom:0.75rem}
+.step-n{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:#55698a;line-height:1;margin-bottom:0.75rem}
 .step-icon{font-size:1.2rem;margin-bottom:0.75rem}
 .step-title{font-size:0.9rem;font-weight:500;margin-bottom:0.4rem}
 .step-desc{font-size:0.78rem;color:var(--muted2);line-height:1.65}
@@ -698,7 +698,7 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   <p class="s-sub reveal">Four layers. One goal — catch the problem before it breaks your engine.</p>
   <div class="steps reveal">
     <div class="step"><div class="step-n">01</div><div class="step-icon">⚡</div><div class="step-title">Sense</div><p class="step-desc">Two sensors on the engine block read vibration on 3 axes and surface temperature, 50 times per second.</p><div class="step-tech">MPU6050 · DS18B20</div></div>
-    <div class="step"><div class="step-n">02</div><div class="step-icon">📡</div><div class="step-title">Transmit</div><p class="step-desc">The ESP32 microcontroller packages sensor data as JSON and publishes it over Wi-Fi using lightweight MQTT.</p><div class="step-tech">ESP32 · MQTT · Wi-Fi</div></div>
+    <div class="step"><div class="step-n">02</div><div class="step-icon">📡</div><div class="step-title">Transmit</div><p class="step-desc">The ESP32 microcontroller packages sensor data as JSON and streams it straight to the receiving device over an encrypted Bluetooth Low Energy connection — no Wi-Fi network required.</p><div class="step-tech">ESP32 · Bluetooth Low Energy · GATT</div></div>
     <div class="step"><div class="step-n">03</div><div class="step-icon">🧠</div><div class="step-title">Analyse</div><p class="step-desc">Python server filters the signal, extracts 22 features, and runs Isolation Forest inference to score each window.</p><div class="step-tech">Isolation Forest · FFT · Butterworth</div></div>
     <div class="step"><div class="step-n">04</div><div class="step-icon">🔔</div><div class="step-title">Alert</div><p class="step-desc">If the score drops below the threshold, a severity-graded alert fires and the event is logged to the cloud.</p><div class="step-tech">Streamlit · Supabase</div></div>
   </div>
@@ -803,7 +803,7 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   <p class="s-sub reveal">Four distinct layers — from physical hardware to the screen in your hand.</p>
   <div class="arch-flow reveal">
     <div class="arch-layer"><div class="al-num">LAYER 01</div><div class="al-name">Perception</div><div class="al-items"><div class="al-item">MPU6050 Accelerometer</div><div class="al-item">DS18B20 Temp Sensor</div><div class="al-item">Engine Block Mount</div></div></div>
-    <div class="arch-layer"><div class="al-num">LAYER 02</div><div class="al-name">Network</div><div class="al-items"><div class="al-item">ESP32 Microcontroller</div><div class="al-item">Wi-Fi 802.11 b/g/n</div><div class="al-item">MQTT Publisher</div><div class="al-item">Mosquitto Broker</div></div></div>
+    <div class="arch-layer"><div class="al-num">LAYER 02</div><div class="al-name">Network</div><div class="al-items"><div class="al-item">ESP32 Microcontroller</div><div class="al-item">Bluetooth Low Energy (BLE)</div><div class="al-item">GATT Notify Characteristic</div><div class="al-item">Encrypted BLE Pairing</div></div></div>
     <div class="arch-layer"><div class="al-num">LAYER 03</div><div class="al-name">Processing</div><div class="al-items"><div class="al-item">Butterworth Filter</div><div class="al-item">Feature Extraction</div><div class="al-item">Isolation Forest ML</div><div class="al-item">Supabase Logger</div></div></div>
     <div class="arch-layer"><div class="al-num">LAYER 04</div><div class="al-name">Application</div><div class="al-items"><div class="al-item">Web Dashboard</div><div class="al-item">Real-time Charts</div><div class="al-item">Anomaly Alerts</div><div class="al-item">Admin Panel</div></div></div>
   </div>
@@ -816,8 +816,8 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   <p class="s-sub reveal">Every tool chosen for a reason — affordable, open-source, and proven.</p>
   <div class="stack-grid reveal">
     <div class="stack-cat"><div class="scat-title">Hardware</div><div class="scat-items"><div class="scat-item">ESP32 Microcontroller</div><div class="scat-item">MPU6050 Accelerometer</div><div class="scat-item">DS18B20 Temperature Sensor</div><div class="scat-item">Arduino IDE / PlatformIO</div></div></div>
-    <div class="stack-cat"><div class="scat-title">Machine Learning & Backend</div><div class="scat-items"><div class="scat-item">Python 3.10+</div><div class="scat-item">Scikit-learn (Isolation Forest)</div><div class="scat-item">NumPy · Pandas · SciPy</div><div class="scat-item">Paho-MQTT</div></div></div>
-    <div class="stack-cat"><div class="scat-title">Communication & UI</div><div class="scat-items"><div class="scat-item">MQTT Protocol</div><div class="scat-item">Eclipse Mosquitto Broker</div><div class="scat-item">Streamlit Dashboard</div><div class="scat-item">Supabase (PostgreSQL)</div><div class="scat-item">Supabase Auth (JWT)</div></div></div>
+    <div class="stack-cat"><div class="scat-title">Machine Learning & Backend</div><div class="scat-items"><div class="scat-item">Python 3.10+</div><div class="scat-item">Scikit-learn (Isolation Forest)</div><div class="scat-item">NumPy · Pandas · SciPy</div><div class="scat-item">Bleak (BLE Client)</div></div></div>
+    <div class="stack-cat"><div class="scat-title">Communication & UI</div><div class="scat-items"><div class="scat-item">Bluetooth Low Energy (BLE)</div><div class="scat-item">GATT Notify Characteristic</div><div class="scat-item">Streamlit Dashboard</div><div class="scat-item">Supabase (PostgreSQL)</div><div class="scat-item">Supabase Auth (JWT)</div></div></div>
   </div>
 </section>
 
