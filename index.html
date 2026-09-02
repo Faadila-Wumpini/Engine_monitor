@@ -143,7 +143,10 @@
 .theme-toggle:hover{border-color:var(--acc);background:rgba(128,128,128,0.1);}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden}
+/* font-weight was 300. At these sizes a 300 weight is the single biggest
+   readability cost — thin strokes on a dark background make body copy hard to
+   read even before size comes into it. 400 is the normal reading weight. */
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:400;overflow-x:hidden}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--acc)}
 
 /* ── AUTH OVERLAY ───────────────────────────────────────────────────────────── */
@@ -303,9 +306,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;justify-content
 
 /* SECTIONS */
 section{padding:6rem 3rem}
-.s-tag{font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--acc);display:block;margin-bottom:0.75rem}
+.s-tag{font-family:'DM Mono',monospace;font-size:0.78rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--acc);display:block;margin-bottom:0.75rem}
 .s-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;margin-bottom:1rem}
-.s-sub{font-size:0.9rem;color:var(--muted2);line-height:1.75;max-width:520px;margin-bottom:2.5rem}
+/* The intro paragraph under every section heading. Widened along with the
+   size bump so the longer line height doesn't turn it into a narrow column. */
+.s-sub{font-size:1.05rem;color:var(--muted2);line-height:1.7;max-width:640px;margin-bottom:2.5rem}
 
 /* HERO */
 #hero{min-height:100vh;display:grid;grid-template-columns:1fr 420px;gap:3rem;align-items:center;padding:7rem 3rem 3rem;position:relative;overflow:hidden}
@@ -326,31 +331,31 @@ section{padding:6rem 3rem}
 .btn-g:hover{border-color:var(--acc);color:var(--acc)}
 .hero-stats{display:flex;gap:2.5rem;margin-top:3.5rem;padding-top:2rem;border-top:1px solid var(--border)}
 .stat-v{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--acc);line-height:1}
-.stat-l{font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:3px}
+.stat-l{font-size:0.82rem;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-top:4px}
 
 /* HERO DASHBOARD CARD */
 .hero-dash{position:relative;z-index:1}
-.dash-card{background:var(--s1);border:1px solid var(--border2);padding:1.25rem;position:relative;overflow:hidden}
+.dash-card{background:var(--s1);border:1px solid var(--border2);padding:1.6rem;position:relative;overflow:hidden}
 .dash-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--acc),var(--acc2))}
-.dc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
-.dc-title{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;color:var(--muted)}
-.status-badge{font-family:'DM Mono',monospace;font-size:0.58rem;padding:3px 8px;letter-spacing:0.08em}
+.dc-head{display:flex;justify-content:space-between;align-items:center;gap:0.75rem;margin-bottom:1rem}
+.dc-title{font-family:'DM Mono',monospace;font-size:0.78rem;letter-spacing:0.1em;color:var(--muted)}
+.status-badge{font-family:'DM Mono',monospace;font-size:0.72rem;padding:4px 10px;letter-spacing:0.06em;white-space:nowrap}
 .s-normal{background:rgba(57,255,122,0.1);color:var(--green);border:1px solid rgba(57,255,122,0.25)}
 .s-alert{background:rgba(255,63,63,0.1);color:var(--red);border:1px solid rgba(255,63,63,0.25);animation:blink 1s step-end infinite}
 .s-warn{background:rgba(255,181,69,0.1);color:var(--amber);border:1px solid rgba(255,181,69,0.25)}
 @keyframes blink{50%{opacity:0.4}}
 .metrics-row{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1rem}
-.metric-box{background:var(--s2);border:1px solid var(--border);padding:0.7rem}
-.mb-label{font-size:0.55rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;font-family:'DM Mono',monospace}
-.mb-val{font-family:'DM Mono',monospace;font-size:1.35rem;font-weight:500;color:var(--text);line-height:1}
-.mb-unit{font-size:0.58rem;color:var(--muted)}
-.chart-wrap{height:75px;margin-bottom:0.75rem}
+.metric-box{background:var(--s2);border:1px solid var(--border);padding:0.85rem;min-width:0}
+.mb-label{font-size:0.68rem;letter-spacing:0.07em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;font-family:'DM Mono',monospace}
+.mb-val{font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:500;color:var(--text);line-height:1}
+.mb-unit{font-size:0.72rem;color:var(--muted);margin-top:2px}
+.chart-wrap{height:95px;margin-bottom:0.75rem}
 .axis-row{display:flex;gap:0.5rem;margin-bottom:0.75rem}
 .ax{flex:1;background:var(--s2);border:1px solid var(--border);padding:0.45rem 0.6rem;display:flex;justify-content:space-between;align-items:center}
-.ax-l{font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted)}
-.ax-v{font-family:'DM Mono',monospace;font-size:0.7rem;font-weight:500}
+.ax-l{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted)}
+.ax-v{font-family:'DM Mono',monospace;font-size:0.85rem;font-weight:500}
 .score-bar{margin-top:0.25rem}
-.sb-labels{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);margin-bottom:4px}
+.sb-labels{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-bottom:4px}
 .sb-track{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
 .sb-fill{height:100%;border-radius:2px;transition:width 0.4s ease,background 0.4s}
 
@@ -362,9 +367,9 @@ section{padding:6rem 3rem}
 .step:hover{background:var(--s2)}
 .step-n{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:#55698a;line-height:1;margin-bottom:0.75rem}
 .step-icon{font-size:1.2rem;margin-bottom:0.75rem}
-.step-title{font-size:0.9rem;font-weight:500;margin-bottom:0.4rem}
-.step-desc{font-size:0.78rem;color:var(--muted2);line-height:1.65}
-.step-tech{margin-top:0.75rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--acc);letter-spacing:0.06em}
+.step-title{font-size:1.05rem;font-weight:500;margin-bottom:0.4rem}
+.step-desc{font-size:0.95rem;color:var(--muted2);line-height:1.65}
+.step-tech{margin-top:0.75rem;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--acc);letter-spacing:0.06em}
 
 /* SENSORS */
 #sensors{padding:6rem 3rem}
@@ -374,33 +379,41 @@ section{padding:6rem 3rem}
 .sensor-card::after{content:'';position:absolute;bottom:0;left:0;width:100%;height:2px}
 .sensor-card.vib::after{background:linear-gradient(90deg,var(--blue),transparent)}
 .sensor-card.temp::after{background:linear-gradient(90deg,var(--acc2),transparent)}
-.sc-tag{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.12em;color:var(--muted);margin-bottom:1.5rem}
+.sc-tag{font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.12em;color:var(--muted);margin-bottom:1.5rem}
 .sc-title{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:1px;margin-bottom:0.75rem}
 .sc-title.vib{color:var(--blue)}.sc-title.temp{color:var(--acc2)}
-.sc-desc{font-size:0.82rem;color:var(--muted2);line-height:1.75;margin-bottom:1.5rem}
+.sc-desc{font-size:0.98rem;color:var(--muted2);line-height:1.7;margin-bottom:1.5rem}
 .specs{display:flex;flex-direction:column;gap:0}
-.spec{display:flex;justify-content:space-between;padding:0.45rem 0;border-bottom:1px solid var(--border);font-size:0.78rem}
+.spec{display:flex;justify-content:space-between;gap:1rem;padding:0.5rem 0;border-bottom:1px solid var(--border);font-size:0.92rem}
 .spec:last-child{border-bottom:none}
-.spec-k{color:var(--muted2)}.spec-v{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text)}
+.spec-k{color:var(--muted2)}.spec-v{font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--text);text-align:right}
 
 /* LIVE MONITOR */
 #monitor{background:var(--s1);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .monitor-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:2rem}
-.mon-card{background:var(--bg);border:1px solid var(--border);padding:1.5rem;position:relative}
+.mon-card{background:var(--bg);border:1px solid var(--border);padding:1.85rem;position:relative}
 .mon-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--acc),transparent)}
-.mon-title{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:1rem}
-.big-score{font-family:'Bebas Neue',sans-serif;font-size:4rem;line-height:1;letter-spacing:2px}
+.mon-title{font-family:'DM Mono',monospace;font-size:0.8rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:1.1rem}
+.big-score{font-family:'Bebas Neue',sans-serif;font-size:5rem;line-height:1;letter-spacing:2px}
 .score-normal{color:var(--green)}.score-low{color:var(--amber)}.score-med{color:var(--acc2)}.score-high{color:var(--red)}
-.severity-badge{display:inline-block;font-family:'DM Mono',monospace;font-size:0.7rem;padding:4px 12px;margin-top:0.5rem;letter-spacing:0.1em}
+.severity-badge{display:inline-block;font-family:'DM Mono',monospace;font-size:0.85rem;padding:4px 12px;margin-top:0.5rem;letter-spacing:0.1em}
 .sev-normal{background:rgba(57,255,122,0.1);color:var(--green);border:1px solid rgba(57,255,122,0.25)}
 .sev-low{background:rgba(255,181,69,0.1);color:var(--amber);border:1px solid rgba(255,181,69,0.25)}
 .sev-med{background:rgba(255,107,53,0.1);color:var(--acc2);border:1px solid rgba(255,107,53,0.25)}
 .sev-high{background:rgba(255,63,63,0.1);color:var(--red);border:1px solid rgba(255,63,63,0.25);animation:blink 1s step-end infinite}
 .live-chart{height:120px;margin-top:1rem}
-.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-top:1rem}
-.stat-box{background:var(--s2);border:1px solid var(--border);padding:0.6rem;text-align:center}
-.sb-val{font-family:'DM Mono',monospace;font-size:0.9rem;font-weight:500;color:var(--text)}
-.sb-lbl{font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;font-family:'DM Mono',monospace}
+/* minmax(0,1fr), not 1fr. A bare 1fr is minmax(auto,1fr), whose auto floor is
+   the column's min-content width — so the long "WINDOWS SCORED" label refused
+   to shrink and pushed the whole grid wider than the card instead of wrapping.
+   That only showed at desktop width, where .monitor-grid is two columns and
+   each stat box is at its narrowest; narrowing the browser collapsed the
+   monitor to one column, widened the boxes and made the overflow disappear. */
+.stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.5rem;margin-top:1rem}
+.stat-box{background:var(--s2);border:1px solid var(--border);padding:0.7rem 0.5rem;text-align:center;min-width:0}
+.sb-val{font-family:'DM Mono',monospace;font-size:1.15rem;font-weight:500;color:var(--text);overflow-wrap:anywhere}
+/* letter-spacing trimmed and wrapping made explicit so the label breaks onto a
+   second line inside the box rather than forcing the box wider. */
+.sb-lbl{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;font-family:'DM Mono',monospace;overflow-wrap:anywhere;line-height:1.3}
 .history-table{width:100%;border-collapse:collapse;margin-top:0.5rem}
 .history-table th{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;padding:0.5rem;border-bottom:1px solid var(--border);text-align:left}
 .history-table td{font-family:'DM Mono',monospace;font-size:0.68rem;padding:0.5rem;border-bottom:1px solid var(--border);color:var(--text)}
@@ -412,18 +425,18 @@ section{padding:6rem 3rem}
 .arch-flow{display:flex;border:1px solid var(--border);margin-top:2rem}
 .arch-layer{flex:1;padding:1.75rem 1.5rem;border-right:1px solid var(--border)}
 .arch-layer:last-child{border-right:none}
-.al-num{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;margin-bottom:0.4rem}
-.al-name{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--acc);letter-spacing:1px;margin-bottom:0.75rem}
+.al-num{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;margin-bottom:0.4rem}
+.al-name{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--acc);letter-spacing:1px;margin-bottom:0.75rem}
 .al-items{display:flex;flex-direction:column;gap:0.35rem}
-.al-item{background:var(--s2);border:1px solid var(--border);padding:0.4rem 0.65rem;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text);letter-spacing:0.04em}
+.al-item{background:var(--s2);border:1px solid var(--border);padding:0.5rem 0.7rem;font-family:'DM Mono',monospace;font-size:0.74rem;color:var(--text);letter-spacing:0.03em}
 
 /* STACK */
 #stack{background:var(--s1);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .stack-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
 .stack-cat{border:1px solid var(--border);padding:1.5rem}
-.scat-title{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.14em;color:var(--muted);text-transform:uppercase;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border)}
+.scat-title{font-family:'DM Mono',monospace;font-size:0.76rem;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border)}
 .scat-items{display:flex;flex-direction:column;gap:0.35rem}
-.scat-item{font-size:0.82rem;color:var(--text);padding:0.25rem 0;display:flex;align-items:center;gap:8px}
+.scat-item{font-size:0.95rem;color:var(--text);padding:0.28rem 0;display:flex;align-items:center;gap:8px}
 .scat-item::before{content:'';width:4px;height:4px;background:var(--acc);flex-shrink:0}
 
 /* TEAM */
@@ -432,19 +445,19 @@ section{padding:6rem 3rem}
 .team-card{background:var(--s1);border:1px solid var(--border);padding:1.5rem;transition:border-color 0.3s}
 .team-card:hover{border-color:var(--acc)}
 .tc-init{width:40px;height:40px;background:rgba(232,255,71,0.07);border:1px solid rgba(232,255,71,0.18);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:var(--acc);margin-bottom:0.75rem}
-.tc-name{font-size:0.88rem;font-weight:500;margin-bottom:0.2rem}
-.tc-role{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted)}
+.tc-name{font-size:1.02rem;font-weight:500;margin-bottom:0.2rem}
+.tc-role{font-family:'DM Mono',monospace;font-size:0.76rem;color:var(--muted)}
 .supervisor-box{margin-top:1.5rem;border:1px solid var(--border);padding:1.25rem;max-width:560px}
-.sup-tag{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem}
-.sup-name{font-size:0.9rem;font-weight:500}
-.sup-dept{font-size:0.78rem;color:var(--muted2);margin-top:0.2rem}
+.sup-tag{font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem}
+.sup-name{font-size:1.02rem;font-weight:500}
+.sup-dept{font-size:0.92rem;color:var(--muted2);margin-top:0.2rem}
 
 /* FOOTER */
 footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .f-logo{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--acc)}
 .f-logo span{color:var(--muted)}
-.f-info{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-align:center;line-height:1.7}
-.f-dept{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-align:right;line-height:1.7}
+.f-info{font-family:'DM Mono',monospace;font-size:0.74rem;color:var(--muted);text-align:center;line-height:1.7}
+.f-dept{font-family:'DM Mono',monospace;font-size:0.74rem;color:var(--muted);text-align:right;line-height:1.7}
 
 /* REVEAL */
 .reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease}
@@ -851,12 +864,33 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
 // note below for why this can't be read later.
 const oauthParams          = new URLSearchParams(window.location.search);
 const oauthCode             = oauthParams.get('code');
+// Supabase can also come back with the result in the URL *hash* instead of the
+// query string — implicit-flow tokens (#access_token=...&refresh_token=...) or
+// an error (#error=access_denied&error_code=otp_expired on an expired/reused
+// confirmation link). Because detectSessionInUrl is false below, the SDK never
+// looks at the hash itself, so before this was handled the page simply found
+// no ?code=, fell through to getSession() (null), and re-showed the auth
+// overlay on whichever tab was open — a silent bounce back to the sign-up
+// form with no error anywhere, which is exactly what Google sign-in was doing.
+const hashParams           = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+const hashAccessToken      = hashParams.get('access_token');
+const hashRefreshToken     = hashParams.get('refresh_token');
+const hashErrorDescription = hashParams.get('error_description') || hashParams.get('error');
 // Supabase redirects back with these instead of ?code=... when IT fails to
 // complete the OAuth flow server-side (e.g. exchanging the code with the
 // provider) — as opposed to a failure on this page's end. Was previously
 // not handled at all, so a Supabase-side failure like this showed up as a
 // silent bounce back to the login screen with zero explanation.
 const oauthErrorDescription = oauthParams.get('error_description');
+
+// Where Supabase sends the browser back to after email confirmation, password
+// recovery, and Google OAuth. This MUST include the /Engine_monitor/ path —
+// GitHub Pages serves this as a PROJECT site, so the bare user-page root
+// (https://faadila-wumpini.github.io/) is a 404 "There isn't a GitHub Pages
+// site here". Leaving it off any one call makes Supabase fall back to the
+// project's configured Site URL, which is exactly what broke the signup
+// confirmation link while the resend link kept working.
+const SITE_URL = 'https://faadila-wumpini.github.io/Engine_monitor/';
 
 const SUPABASE_URL = 'https://vpudvhanmyggzimwcgqo.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwdWR2aGFubXlnZ3ppbXdjZ3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTA2MTQsImV4cCI6MjA5NjA4NjYxNH0.iXIR8-UE5SIaZfAY-Uc6-LaUzYkqfI4LdSY_71V9WQs';
@@ -981,7 +1015,12 @@ async function doSignup(){
   const { data, error } = await sb.auth.signUp({
     email,
     password,
-    options: { data: { full_name: name } }
+    options: {
+      data: { full_name: name },
+      // Without this the confirmation email's link points at Supabase's
+      // configured Site URL instead of this page — see SITE_URL above.
+      emailRedirectTo: SITE_URL
+    }
   });
 
   setLoading('signup', false);
@@ -1086,7 +1125,7 @@ async function doResend(){
   const { error: resendErr } = await sb.auth.resend({
     type : 'signup',
     email: resendEmail,
-    options: { emailRedirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/' }
+    options: { emailRedirectTo: SITE_URL }
   });
 
   if(resendErr){
@@ -1095,7 +1134,7 @@ async function doResend(){
       email: resendEmail,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/'
+        emailRedirectTo: SITE_URL
       }
     });
     error = otpErr;
@@ -1154,14 +1193,21 @@ async function doGoogleAuth(){
     const el=document.getElementById(id);
     if(el){ el.disabled=true; }
   });
+  // Marks which flow the returning ?code=... belongs to. Both Google sign-in
+  // AND the email-confirmation link come back to this same page with a
+  // ?code=..., and they need different failure messages — an email
+  // confirmation that can't be exchanged is usually already confirmed and
+  // just needs a normal sign-in, which is not true of a failed Google login.
+  localStorage.setItem('engineiq-pending-oauth', 'google');
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://faadila-wumpini.github.io/Engine_monitor/',
+      redirectTo: SITE_URL,
       skipBrowserRedirect: false,
     }
   });
   if(error){
+    localStorage.removeItem('engineiq-pending-oauth');
     const authBox2 = document.getElementById('authBox');
     const oauthProc2 = document.getElementById('oauthProcessing');
     if(authBox2) authBox2.style.display = '';
@@ -1259,6 +1305,36 @@ window.addEventListener('load', async ()=>{
     }
   });
 
+  // ── Implicit-flow / hash results ───────────────────────────────────────────
+  // Handled before the ?code= branch since only one of the two is ever present.
+  if(hashErrorDescription){
+    history.replaceState(null, '', window.location.pathname);
+    console.error('Auth redirect error (hash):', hashErrorDescription);
+    switchTab('login');
+    const expired = /expired|invalid/i.test(hashErrorDescription);
+    showMsg('loginMsg', expired
+      ? 'That confirmation link has expired or was already used. Sign in below, or sign up again to get a fresh link.'
+      : `Sign-in failed: ${hashErrorDescription}`, 'error');
+    return;
+  }
+
+  if(hashAccessToken && hashRefreshToken){
+    const { data, error } = await sb.auth.setSession({
+      access_token : hashAccessToken,
+      refresh_token: hashRefreshToken
+    });
+    history.replaceState(null, '', window.location.pathname);
+    localStorage.removeItem('engineiq-pending-oauth');
+    if(data?.session?.user){
+      showMainSite(data.session.user);
+    } else {
+      console.error('setSession from URL hash failed:', error);
+      switchTab('login');
+      showMsg('loginMsg', error?.message ? `Sign-in failed: ${error.message}` : 'Sign-in failed. Please try again.', 'error');
+    }
+    return;
+  }
+
   if(oauthErrorDescription){
     // Supabase itself failed the OAuth flow server-side and redirected
     // back with the reason — show it directly rather than the generic
@@ -1266,7 +1342,9 @@ window.addEventListener('load', async ()=>{
     // (e.g. "Unable to exchange external code" = provider credentials
     // mismatch between Supabase and the identity provider's console).
     history.replaceState(null, '', window.location.pathname);
+    localStorage.removeItem('engineiq-pending-oauth');
     console.error('OAuth provider error:', oauthErrorDescription);
+    switchTab('login');   // loginMsg is hidden while the sign-up tab is active
     showMsg('loginMsg', `Google sign-in failed: ${oauthErrorDescription}`, 'error');
     return;
   }
@@ -1281,16 +1359,53 @@ window.addEventListener('load', async ()=>{
     if(authBox)    authBox.style.display   = 'none';
     if(oauthProc)  oauthProc.style.display = 'flex';
 
+    // Set by doGoogleAuth() just before it redirects out to Google. Absent
+    // means this ?code=... came from an email confirmation link instead.
+    const isGoogleFlow = localStorage.getItem('engineiq-pending-oauth') === 'google';
+    localStorage.removeItem('engineiq-pending-oauth');
+
     const { data, error } = await sb.auth.exchangeCodeForSession(oauthCode);
     history.replaceState(null, '', window.location.pathname);
 
     if(data?.session?.user){
       showMainSite(data.session.user);
-    } else {
+      return;
+    }
+
+    // The exchange reported no session — but check storage before declaring
+    // failure. A single-use code that was already consumed errors here even
+    // though a valid session was established by that first consumption, and
+    // bouncing a genuinely signed-in user back to the auth form is worse than
+    // the error it's reporting.
+    const { data: { session: recovered } } = await sb.auth.getSession();
+    if(recovered?.user){
+      showMainSite(recovered.user);
+      return;
+    }
+
+    {
       if(authBox)   authBox.style.display   = '';
       if(oauthProc) oauthProc.style.display = 'none';
-      console.error('Google sign-in exchange failed:', error);
-      showMsg('loginMsg', error?.message ? `Google sign-in failed: ${error.message}` : 'Google sign-in failed. Please try again.', 'error');
+      console.error('Code exchange failed:', error);
+      if(isGoogleFlow){
+        // switchTab, because "Continue with Google" is reachable from the
+        // sign-up tab — and loginMsg lives inside the login form, which that
+        // tab hides. The message was being written into a hidden element, so
+        // a failed Google sign-in looked like a silent bounce back to sign-up.
+        switchTab('login');
+        showMsg('loginMsg', error?.message ? `Google sign-in failed: ${error.message}` : 'Google sign-in failed. Please try again.', 'error');
+      } else {
+        // Email confirmation. Supabase already marked the address confirmed
+        // at its /auth/v1/verify step BEFORE redirecting here, so the account
+        // is live even though this exchange failed. The usual cause is
+        // opening the emailed link in a different browser or on a phone,
+        // where the PKCE code verifier written at sign-up isn't in
+        // localStorage. Signing in normally works and is the right next step
+        // — reporting this as a hard failure would send the user off to
+        // re-register an account that already exists.
+        switchTab('login');
+        showMsg('loginMsg', '✓ Your email is confirmed. Please sign in below to continue.', 'success');
+      }
     }
     return;
   }
