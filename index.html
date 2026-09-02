@@ -875,13 +875,23 @@ const oauthCode             = oauthParams.get('code');
 const hashParams           = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
 const hashAccessToken      = hashParams.get('access_token');
 const hashRefreshToken     = hashParams.get('refresh_token');
-const hashErrorDescription = hashParams.get('error_description') || hashParams.get('error');
+// Supabase percent-encodes the provider's error text before putting it in the
+// redirect, and URLSearchParams only undoes one layer — so the message arrived
+// reading "Unable to exchange external code%3A 4%2F0A" with the colon and
+// slash still escaped. Decode again for legibility, guarded because a stray
+// lone '%' in an error string makes decodeURIComponent throw.
+function decodeOnce(s){
+  if(!s) return s;
+  try { return decodeURIComponent(s); } catch(e){ return s; }
+}
+const hashErrorDescription  = decodeOnce(hashParams.get('error_description') || hashParams.get('error'));
+const oauthErrorDescription = decodeOnce(oauthErrorDescriptionRaw);
 // Supabase redirects back with these instead of ?code=... when IT fails to
 // complete the OAuth flow server-side (e.g. exchanging the code with the
 // provider) — as opposed to a failure on this page's end. Was previously
 // not handled at all, so a Supabase-side failure like this showed up as a
 // silent bounce back to the login screen with zero explanation.
-const oauthErrorDescription = oauthParams.get('error_description');
+const oauthErrorDescriptionRaw = oauthParams.get('error_description');
 
 // Where Supabase sends the browser back to after email confirmation, password
 // recovery, and Google OAuth. This MUST include the /Engine_monitor/ path —
