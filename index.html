@@ -501,7 +501,7 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
     <div class="auth-tagline">Predictive Engine Health Monitor</div>
 
     <!-- tabs -->
-    <div class="auth-tabs">
+    <div class="auth-tabs" id="authTabs">
       <div class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</div>
       <div class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Create Account</div>
     </div>
@@ -521,6 +521,10 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
           <button class="eye-btn" type="button" onclick="toggleEye('loginPassword','loginEye')" id="loginEye"
             title="Show/hide password">👁</button>
         </div>
+      </div>
+      <div style="text-align:right;margin:-0.4rem 0 0.9rem">
+        <span class="auth-switch" style="margin-left:0;font-family:'DM Mono',monospace;font-size:0.68rem"
+          onclick="showForgot()">Forgot your password?</span>
       </div>
       <button class="auth-btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
       <div class="auth-loading" id="loginLoading"><span class="spinner"></span>Authenticating…</div>
@@ -620,6 +624,99 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
 
       <div id="signupDivider" class="auth-divider">
         Already have an account?<span class="auth-switch" onclick="switchTab('login')">Sign in</span>
+      </div>
+    </div>
+
+    <!-- ── PASSWORD RESET ────────────────────────────────────────────────── -->
+    <!-- Three stages sharing one container. Stage 3 is reachable two ways:
+         by entering the 6-digit code from the email (stage 2), or by opening
+         the emailed link, which returns to this page with a recovery session
+         and jumps straight here. Both converge on the same password form. -->
+    <div id="forgotForm" style="display:none">
+
+      <!-- Stage 1 — ask for the account's email -->
+      <div id="fpStage1">
+        <div class="auth-logo-sub" style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--acc);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem">
+          Reset your password
+        </div>
+        <div style="font-size:0.88rem;color:var(--muted2);line-height:1.65;margin-bottom:1.25rem">
+          Enter the email address on your account and we'll send you a code to reset your password.
+        </div>
+        <div class="auth-field">
+          <label>Email address</label>
+          <input type="email" id="fpEmail" placeholder="you@example.com" autocomplete="email"
+            onkeydown="if(event.key==='Enter')doSendReset()">
+        </div>
+        <button class="auth-btn" id="fpSendBtn" onclick="doSendReset()">Send reset code →</button>
+        <div class="auth-loading" id="fpSendLoading"><span class="spinner"></span>Sending…</div>
+        <div class="auth-msg" id="fpSendMsg"></div>
+      </div>
+
+      <!-- Stage 2 — enter the emailed code -->
+      <div id="fpStage2" style="display:none">
+        <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--acc);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem">
+          Check your email
+        </div>
+        <div style="font-size:0.88rem;color:var(--muted2);line-height:1.65;margin-bottom:1.25rem">
+          We sent a reset email to <strong id="fpSentTo" style="color:var(--text)"></strong>.
+          Enter the 6-digit code below — or simply click the link in that email, which brings you
+          straight back here.
+        </div>
+        <div class="auth-field">
+          <label>6-digit code</label>
+          <input type="text" id="fpCode" placeholder="000000" inputmode="numeric" autocomplete="one-time-code"
+            maxlength="6" style="text-align:center;font-size:1.5rem;letter-spacing:0.5em;padding:0.75rem 0.5rem"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+            onkeydown="if(event.key==='Enter')doVerifyCode()">
+        </div>
+        <button class="auth-btn" id="fpVerifyBtn" onclick="doVerifyCode()">Verify code →</button>
+        <div class="auth-loading" id="fpVerifyLoading"><span class="spinner"></span>Verifying…</div>
+        <div class="auth-msg" id="fpVerifyMsg"></div>
+        <div class="auth-divider">
+          Didn't get it?<span class="auth-switch" onclick="backToForgotStart()">Try another email</span>
+        </div>
+      </div>
+
+      <!-- Stage 3 — choose the new password -->
+      <div id="fpStage3" style="display:none">
+        <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--acc);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem">
+          Choose a new password
+        </div>
+        <div style="font-size:0.88rem;color:var(--muted2);line-height:1.65;margin-bottom:1.25rem">
+          Your identity is verified. Set a new password to finish.
+        </div>
+        <div class="auth-field">
+          <label>New password</label>
+          <div class="pw-wrap">
+            <input type="password" id="fpPassword" placeholder="••••••••" autocomplete="new-password"
+              oninput="onFpPasswordInput()">
+            <button class="eye-btn" type="button" onclick="toggleEye('fpPassword','fpEye')" id="fpEye"
+              title="Show/hide password">👁</button>
+          </div>
+          <div class="pw-strength" id="fpStrength">
+            <div class="pw-strength-bar"><div class="pw-strength-fill" id="fpStrengthFill"></div></div>
+            <div class="pw-strength-label" id="fpStrengthLabel"></div>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>Confirm new password</label>
+          <div class="pw-wrap">
+            <input type="password" id="fpConfirm" placeholder="••••••••" autocomplete="new-password"
+              oninput="onFpConfirmInput()" onkeydown="if(event.key==='Enter')doSetNewPassword()">
+            <button class="eye-btn" type="button" onclick="toggleEye('fpConfirm','fpConfirmEye')" id="fpConfirmEye"
+              title="Show/hide password">👁</button>
+          </div>
+          <div class="pw-match" id="fpMatch">
+            <span class="match-icon" id="fpMatchIcon"></span><span id="fpMatchLabel"></span>
+          </div>
+        </div>
+        <button class="auth-btn" id="fpSaveBtn" onclick="doSetNewPassword()">Update password →</button>
+        <div class="auth-loading" id="fpSaveLoading"><span class="spinner"></span>Updating…</div>
+        <div class="auth-msg" id="fpSaveMsg"></div>
+      </div>
+
+      <div class="auth-divider">
+        <span class="auth-switch" onclick="backToLogin()">← Back to sign in</span>
       </div>
     </div>
   </div>
@@ -886,6 +983,17 @@ function decodeOnce(s){
 }
 const hashErrorDescription  = decodeOnce(hashParams.get('error_description') || hashParams.get('error'));
 const oauthErrorDescription = decodeOnce(oauthErrorDescriptionRaw);
+// Supabase tags implicit-flow recovery returns with type=recovery. The PKCE
+// (?code=...) variant carries no such marker, so doSendReset() also leaves a
+// localStorage breadcrumb — without one of the two, a returning reset link is
+// indistinguishable from a Google sign-in and would log the user straight in
+// without ever letting them set a new password.
+const hashType = hashParams.get('type');
+
+function isRecoveryReturn(){
+  if(hashType === 'recovery') return true;
+  try { return !!localStorage.getItem('engineiq-pending-recovery'); } catch(e){ return false; }
+}
 // Supabase redirects back with these instead of ?code=... when IT fails to
 // complete the OAuth flow server-side (e.g. exchanging the code with the
 // provider) — as opposed to a failure on this page's end. Was previously
@@ -1004,7 +1112,170 @@ function switchTab(tab){
   document.getElementById('tabSignup').className = 'auth-tab' + (tab==='signup'?' active':'');
   document.getElementById('loginForm').style.display  = tab==='login'  ? '' : 'none';
   document.getElementById('signupForm').style.display = tab==='signup' ? '' : 'none';
+  // Leaving the reset flow whenever a tab is chosen — otherwise switching tabs
+  // from inside it would stack the reset panel on top of a login form.
+  document.getElementById('forgotForm').style.display = 'none';
+  document.getElementById('authTabs').style.display   = '';
   hideMsg('loginMsg'); hideMsg('signupMsg');
+}
+
+// ── PASSWORD RESET ───────────────────────────────────────────────────────────
+// Stage 1 collects the email, stage 2 takes the 6-digit code, stage 3 sets the
+// new password. Stage 3 is also entered directly when the user arrives back
+// from the emailed reset link, which carries its own recovery session — see
+// the 'load' handler.
+function showFpStage(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('fpStage'+i).style.display = (i===n ? '' : 'none');
+  });
+}
+
+function showForgot(){
+  document.getElementById('loginForm').style.display   = 'none';
+  document.getElementById('signupForm').style.display  = 'none';
+  document.getElementById('authTabs').style.display    = 'none';
+  document.getElementById('forgotForm').style.display  = '';
+  const id = document.getElementById('loginIdentifier').value.trim();
+  // Carry over whatever they already typed, but only if it looks like an email
+  // — the sign-in box also accepts a full name, which is not a reset target.
+  if(id.includes('@')) document.getElementById('fpEmail').value = id;
+  showFpStage(1);
+  ['fpSendMsg','fpVerifyMsg','fpSaveMsg'].forEach(hideMsg);
+}
+
+function backToLogin(){
+  document.getElementById('forgotForm').style.display = 'none';
+  document.getElementById('authTabs').style.display   = '';
+  switchTab('login');
+}
+
+function backToForgotStart(){
+  showFpStage(1);
+  ['fpSendMsg','fpVerifyMsg'].forEach(hideMsg);
+  document.getElementById('fpCode').value = '';
+}
+
+let fpEmail = '';
+
+async function doSendReset(){
+  const email = document.getElementById('fpEmail').value.trim();
+  if(!email || !email.includes('@')){
+    return showMsg('fpSendMsg','Please enter a valid email address.','error');
+  }
+  setLoading('fpSend', true);
+  hideMsg('fpSendMsg');
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: SITE_URL });
+
+  setLoading('fpSend', false);
+
+  if(error){
+    showMsg('fpSendMsg', error.message, 'error');
+    return;
+  }
+  fpEmail = email;
+  // Lets the 'load' handler tell a returning reset link apart from a Google
+  // sign-in or an email confirmation, since all three come back as ?code=...
+  try { localStorage.setItem('engineiq-pending-recovery', email); } catch(e){}
+  document.getElementById('fpSentTo').textContent = email;
+  showFpStage(2);
+  setTimeout(()=>document.getElementById('fpCode').focus(), 50);
+}
+
+async function doVerifyCode(){
+  const code  = document.getElementById('fpCode').value.trim();
+  const email = fpEmail || document.getElementById('fpEmail').value.trim();
+  if(code.length !== 6){
+    return showMsg('fpVerifyMsg','Please enter the full 6-digit code from the email.','error');
+  }
+  setLoading('fpVerify', true);
+  hideMsg('fpVerifyMsg');
+
+  const { data, error } = await sb.auth.verifyOtp({ email, token: code, type: 'recovery' });
+
+  setLoading('fpVerify', false);
+
+  if(error || !data?.session){
+    // The default Supabase email template sends only a link, with no {{ .Token }}
+    // in it — so if custom SMTP hasn't been configured there is no code to type.
+    // Say so, rather than leaving the user retrying a code they never received.
+    showMsg('fpVerifyMsg',
+      (error?.message || 'That code could not be verified.') +
+      ' If the email contained only a link and no code, click the link instead — it works the same way.',
+      'error');
+    return;
+  }
+  enterPasswordStage();
+}
+
+function enterPasswordStage(){
+  document.getElementById('loginForm').style.display  = 'none';
+  document.getElementById('signupForm').style.display = 'none';
+  document.getElementById('authTabs').style.display   = 'none';
+  document.getElementById('forgotForm').style.display = '';
+  showFpStage(3);
+  ['fpSendMsg','fpVerifyMsg','fpSaveMsg'].forEach(hideMsg);
+  setTimeout(()=>document.getElementById('fpPassword').focus(), 50);
+}
+
+function onFpPasswordInput(){
+  const pw  = document.getElementById('fpPassword').value;
+  const str = document.getElementById('fpStrength');
+  if(!pw){ str.className='pw-strength'; return; }
+  str.className='pw-strength show';
+  const s = getStrength(pw);
+  const fill = document.getElementById('fpStrengthFill');
+  const lbl  = document.getElementById('fpStrengthLabel');
+  fill.style.width      = s.w;
+  fill.style.background = s.color;
+  lbl.textContent       = s.label;
+  lbl.style.color       = s.color;
+  onFpConfirmInput();
+}
+
+function onFpConfirmInput(){
+  const pw = document.getElementById('fpPassword').value;
+  const cf = document.getElementById('fpConfirm').value;
+  const el = document.getElementById('fpMatch');
+  if(!cf){ el.className='pw-match'; return; }
+  el.className = 'pw-match show ' + (pw===cf ? 'ok' : 'bad');
+  document.getElementById('fpMatchIcon').textContent  = pw===cf ? '✓' : '✗';
+  document.getElementById('fpMatchLabel').textContent = pw===cf ? 'Passwords match' : 'Passwords do not match';
+}
+
+async function doSetNewPassword(){
+  const pw = document.getElementById('fpPassword').value;
+  const cf = document.getElementById('fpConfirm').value;
+
+  // Same rules the sign-up form enforces, so a reset can't quietly create a
+  // weaker password than registration would have allowed.
+  if(pw.length < 8)        return showMsg('fpSaveMsg','Password must be at least 8 characters.','error');
+  if(!hasSpecialChar(pw))  return showMsg('fpSaveMsg','Password must include at least one special character (e.g. @, #, $, !).','error');
+  if(pw !== cf)            return showMsg('fpSaveMsg','Passwords do not match.','error');
+
+  setLoading('fpSave', true);
+  hideMsg('fpSaveMsg');
+
+  const { data, error } = await sb.auth.updateUser({ password: pw });
+
+  setLoading('fpSave', false);
+
+  if(error){
+    // A recovery session is short-lived; if it lapsed before this point the
+    // update fails and the whole flow has to restart from the email.
+    showMsg('fpSaveMsg', /session|jwt|expired/i.test(error.message)
+      ? 'Your reset link has expired. Please request a new one.'
+      : error.message, 'error');
+    return;
+  }
+
+  try { localStorage.removeItem('engineiq-pending-recovery'); } catch(e){}
+  showMsg('fpSaveMsg','✓ Password updated. Signing you in…','success');
+  const user = data?.user || (await sb.auth.getSession()).data?.session?.user;
+  setTimeout(()=>{
+    if(user){ showMainSite(user); }
+    else    { backToLogin(); showMsg('loginMsg','✓ Password updated. Please sign in with your new password.','success'); }
+  }, 900);
 }
 
 async function doSignup(){
@@ -1036,28 +1307,56 @@ async function doSignup(){
   setLoading('signup', false);
 
   if(error){
-    showMsg('signupMsg', error.message, 'error');
-  } else if(data.user && data.user.identities && data.user.identities.length === 0){
-    showMsg('signupMsg', 'An account with this email already exists. Please sign in instead.', 'error');
-  } else {
-    // Insert into profiles table so name-based login works
-    if(data.user){
-      await sb.from('profiles').upsert({
-        id        : data.user.id,
-        email     : email,
-        full_name : name
-      });
-    }
-    // Check if email confirmation is required (session will be null if so)
-    if(!data.session){
-      // Email confirmation required — show confirm panel
-      showConfirmPanel(email);
-    } else {
-      // Email confirmation disabled — log straight in
-      showMsg('signupMsg', '✓ Account created! Signing you in…', 'success');
-      setTimeout(()=>showMainSite(data.user), 900);
-    }
+    // Supabase's built-in email service is heavily rate-limited; when that is
+    // what failed, the raw message ("over_email_send_rate_limit" and similar)
+    // doesn't tell the user anything they can act on.
+    showMsg('signupMsg', /rate limit|too many|after \d+ seconds/i.test(error.message)
+      ? 'Too many signup emails have been sent recently. Please wait a few minutes and try again, or configure custom SMTP to lift this limit.'
+      : error.message, 'error');
+    return;
   }
+
+  if(data.user && data.user.identities && data.user.identities.length === 0){
+    showMsg('signupMsg', 'An account with this email already exists. Please sign in instead.', 'error');
+    return;
+  }
+
+  // Advance the UI immediately. By this point the account exists and Supabase
+  // has sent the confirmation email — that is the outcome the user is waiting
+  // on. Previously the profiles upsert below was awaited FIRST, so a slow or
+  // RLS-rejected write left the form sitting there with the spinner already
+  // switched off and nothing happening: the signup had actually succeeded but
+  // the user had no way to know.
+  if(!data.session){
+    showConfirmPanel(email);
+  } else {
+    showMsg('signupMsg', '✓ Account created! Signing you in…', 'success');
+    setTimeout(()=>showMainSite(data.user), 900);
+  }
+
+  // Secondary, and deliberately not awaited: this row only powers name-based
+  // sign-in. With email confirmation on there is no session yet, so this runs
+  // as the anon role and RLS will usually reject it — ensureProfile() retries
+  // it once the user is genuinely authenticated.
+  if(data.user) ensureProfile(data.user, name);
+}
+
+// Idempotent profile write. Called after signup (best-effort, often blocked by
+// RLS while unauthenticated) and again from showMainSite() once a real session
+// exists, which is when it actually succeeds. Never throws and never blocks a
+// caller — a missing profile row degrades name-based sign-in, nothing more.
+function ensureProfile(user, nameHint){
+  if(!user) return;
+  const full_name = nameHint || user.user_metadata?.full_name || '';
+  if(!full_name) return;
+  try {
+    sb.from('profiles')
+      .upsert({ id: user.id, email: user.email, full_name })
+      .then(({ error }) => {
+        if(error) console.warn('profiles upsert skipped:', error.message,
+          '— sign-in by full name may not work for this account until it succeeds.');
+      }, err => console.warn('profiles upsert failed:', err));
+  } catch(e){ console.warn('profiles upsert threw:', e); }
 }
 
 // ── CONFIRM PANEL & RESEND ───────────────────────────────────────────────────
@@ -1209,6 +1508,8 @@ async function doGoogleAuth(){
   // confirmation that can't be exchanged is usually already confirmed and
   // just needs a normal sign-in, which is not true of a failed Google login.
   localStorage.setItem('engineiq-pending-oauth', 'google');
+  // Drop any abandoned reset breadcrumb so it can't be mistaken for this return.
+  try { localStorage.removeItem('engineiq-pending-recovery'); } catch(e){}
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -1296,6 +1597,9 @@ function showMainSite(user){
   document.getElementById('mainSite').style.display    = 'block';
   const email = user?.email || '';
   document.getElementById('navUserEmail').textContent  = email;
+  // Now that a session exists, RLS will accept the write that was rejected at
+  // signup time. Fire-and-forget: it must never delay showing the dashboard.
+  ensureProfile(user);
   initCharts();
   initSimulation();
   initMonitorPolling();
@@ -1336,6 +1640,7 @@ window.addEventListener('load', async ()=>{
     history.replaceState(null, '', window.location.pathname);
     localStorage.removeItem('engineiq-pending-oauth');
     if(data?.session?.user){
+      if(isRecoveryReturn()){ enterPasswordStage(); return; }
       showMainSite(data.session.user);
     } else {
       console.error('setSession from URL hash failed:', error);
@@ -1378,6 +1683,10 @@ window.addEventListener('load', async ()=>{
     history.replaceState(null, '', window.location.pathname);
 
     if(data?.session?.user){
+      // Google takes precedence: a reset that was requested but never finished
+      // leaves its breadcrumb behind, and that stale flag must not hijack a
+      // later Google sign-in and demand a new password.
+      if(!isGoogleFlow && isRecoveryReturn()){ enterPasswordStage(); return; }
       showMainSite(data.session.user);
       return;
     }
@@ -1413,8 +1722,13 @@ window.addEventListener('load', async ()=>{
         // localStorage. Signing in normally works and is the right next step
         // — reporting this as a hard failure would send the user off to
         // re-register an account that already exists.
+        // This branch catches a password-reset link opened in a different
+        // browser too, and in that case there is no breadcrumb to tell the two
+        // apart — localStorage doesn't travel between browsers. So the message
+        // has to serve both: confirmation succeeded either way, and the reset
+        // case gets the one instruction that actually resolves it.
         switchTab('login');
-        showMsg('loginMsg', '✓ Your email is confirmed. Please sign in below to continue.', 'success');
+        showMsg('loginMsg', '✓ Link verified. Please sign in below to continue. Resetting your password? Request a new link and open it in this same browser.', 'success');
       }
     }
     return;
