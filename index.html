@@ -697,6 +697,7 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
     <li><a href="#how">Process</a></li>
     <li><a href="#sensors">Sensors</a></li>
     <li><a href="#monitor">Live Monitor</a></li>
+    <li><a href="#export">Download Data</a></li>
     <li><a href="#arch">Architecture</a></li>
     <li><a href="#team">Team</a></li>
   </ul>
@@ -734,9 +735,15 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   <div class="hero-dash">
     <div class="dash-card">
       <div class="dc-head">
-        <span class="dc-title">// LIVE ENGINE MONITOR</span>
+        <span class="dc-title">// ENGINE MONITOR
+          <span id="hMode" style="margin-left:8px;padding:2px 7px;font-size:0.62rem;letter-spacing:0.08em;
+            border:1px solid var(--border2);color:var(--muted)">DEMO</span></span>
         <span class="status-badge s-normal" id="hStatus">● NORMAL</span>
       </div>
+      <!-- Says where these numbers came from: live sensor, the last recorded
+           session, or a demonstration animation when nothing has been recorded. -->
+      <div id="hFeedNote" style="font-family:'DM Mono',monospace;font-size:0.66rem;color:var(--muted);
+        margin:-0.5rem 0 0.9rem;letter-spacing:0.03em">Demonstration data — no sensor readings recorded yet</div>
       <div class="metrics-row">
         <div class="metric-box">
           <div class="mb-label">Temperature</div>
@@ -865,6 +872,41 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
         <div class="stat-box" style="border-color:rgba(255,107,53,0.2)"><div class="sb-val" id="countMed" style="color:var(--acc2)">0</div><div class="sb-lbl">Medium</div></div>
         <div class="stat-box" style="border-color:rgba(255,63,63,0.2)"><div class="sb-val" id="countHigh" style="color:var(--red)">0</div><div class="sb-lbl">High</div></div>
       </div>
+    </div>
+
+    <!-- Export: lets a driver take a record of the engine's history to a
+         mechanic. Reads the same anomaly_logs table the monitor above uses. -->
+    <div class="mon-card full-width reveal" id="export" style="scroll-margin-top:90px">
+      <div class="mon-title">// Download Engine History</div>
+      <div style="font-size:0.92rem;color:var(--muted2);line-height:1.65;margin-bottom:1.25rem;max-width:640px">
+        Export your recorded engine readings as a spreadsheet file (CSV) to share with a mechanic
+        or keep for your service records. Choose the period you want to include.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;align-items:end">
+        <div class="auth-field" style="margin-bottom:0">
+          <label>From</label>
+          <input type="date" id="exFrom">
+        </div>
+        <div class="auth-field" style="margin-bottom:0">
+          <label>To</label>
+          <input type="date" id="exTo">
+        </div>
+        <div class="auth-field" style="margin-bottom:0">
+          <label>Readings</label>
+          <select id="exSource"
+            style="width:100%;background:var(--s2);border:1px solid var(--border2);color:var(--text);
+                   font-family:'DM Mono',monospace;font-size:0.82rem;padding:0.65rem 0.9rem;outline:none">
+            <option value="live">Real engine only</option>
+            <option value="all">Everything (incl. simulation)</option>
+          </select>
+        </div>
+        <div>
+          <button class="auth-btn" id="exportBtn" onclick="doExportData()"
+            style="margin-top:0">Download CSV</button>
+        </div>
+      </div>
+      <div class="auth-loading" id="exportLoading"><span class="spinner"></span>Preparing your file…</div>
+      <div class="auth-msg" id="exportMsg"></div>
     </div>
   </div>
 </section>
@@ -1565,6 +1607,7 @@ async function doLogin(){
 async function doSignOut(){
   await sb.auth.signOut();
   if(simInterval){ clearInterval(simInterval); simInterval=null; chartsReady=false; }
+  if(heroFeedInterval){ clearInterval(heroFeedInterval); heroFeedInterval=null; heroMode=null; }
   if(monitorPollInterval){ clearInterval(monitorPollInterval); monitorPollInterval=null; }
   document.getElementById('mainSite').style.display    = 'none';
   document.getElementById('authOverlay').style.display = 'flex';
@@ -1588,6 +1631,7 @@ function showMainSite(user){
   initCharts();
   initSimulation();
   initMonitorPolling();
+  initExportDefaults();
   initScrollReveal();
 }
 
@@ -1600,6 +1644,7 @@ window.addEventListener('load', async ()=>{
       document.getElementById('mainSite').style.display    = 'none';
       document.getElementById('authOverlay').style.display = 'flex';
       if(simInterval){ clearInterval(simInterval); simInterval=null; chartsReady=false; }
+      if(heroFeedInterval){ clearInterval(heroFeedInterval); heroFeedInterval=null; heroMode=null; }
       if(monitorPollInterval){ clearInterval(monitorPollInterval); monitorPollInterval=null; }
     }
   });
@@ -1761,11 +1806,107 @@ function initCharts(){
   });
 }
 
-let simInterval = null;
+let simInterval     = null;   // the demo animation, only when no real data exists
+let heroFeedInterval = null;  // poll that decides which of the three states applies
+// ── HERO CARD FEED ────────────────────────────────────────────────────────────
+// Three states, decided by what is actually in anomaly_logs:
+//   live    — a real ESP32 reading arrived within LIVE_WINDOW_MS; values update
+//   last    — real readings exist but have stopped; the most recent one is held
+//             on screen with its age, rather than pretending to be current
+//   demo    — nothing real has ever been recorded; the animation runs, labelled
+// Previously this card always animated invented numbers, which looked identical
+// to live data whether or not any sensor was connected.
+const LIVE_WINDOW_MS = 60000;
+let heroMode = null;
+
+function timeAgo(iso){
+  const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime())/1000));
+  if(s < 60)    return s + ' second' + (s===1?'':'s') + ' ago';
+  const m = Math.floor(s/60);
+  if(m < 60)    return m + ' minute' + (m===1?'':'s') + ' ago';
+  const h = Math.floor(m/60);
+  if(h < 24)    return h + ' hour' + (h===1?'':'s') + ' ago';
+  const d = Math.floor(h/24);
+  return d + ' day' + (d===1?'':'s') + ' ago';
+}
+
+function setHeroMode(mode, note){
+  const chip = document.getElementById('hMode');
+  const noteEl = document.getElementById('hFeedNote');
+  if(noteEl) noteEl.textContent = note;
+  if(chip){
+    chip.textContent = mode === 'live' ? 'LIVE' : mode === 'last' ? 'OFFLINE' : 'DEMO';
+    chip.style.color       = mode === 'live' ? 'var(--green)' : 'var(--muted)';
+    chip.style.borderColor = mode === 'live' ? 'rgba(57,255,122,0.35)' : 'var(--border2)';
+  }
+  if(mode === heroMode) return;
+  heroMode = mode;
+  // The animation must stop the moment real data exists, or invented values
+  // would keep overwriting the genuine ones every 120ms.
+  if(mode === 'demo') startHeroDemo();
+  else if(simInterval){ clearInterval(simInterval); simInterval = null; }
+}
+
+function renderHeroFromRows(rows, latest){
+  const num = v => (v === null || v === undefined) ? null : Number(v);
+  const t = num(latest.temp_mean), sc = num(latest.anomaly_score);
+  document.getElementById('hTemp').textContent  = t  != null ? t.toFixed(1)  : '—';
+  document.getElementById('hScore').textContent = sc != null ? sc.toFixed(4) : '—';
+  const ax = num(latest.acc_x_mean), ay = num(latest.acc_y_mean), az = num(latest.acc_z_mean);
+  document.getElementById('hX').textContent = ax != null ? ax.toFixed(3) : '—';
+  document.getElementById('hY').textContent = ay != null ? ay.toFixed(3) : '—';
+  document.getElementById('hZ').textContent = az != null ? az.toFixed(3) : '—';
+
+  const chrono = [...rows].reverse().map(r => num(r.acc_z_mean));
+  if(heroChart){
+    const pad = chrono.length < 60 ? [...Array(60-chrono.length).fill(null), ...chrono] : chrono.slice(-60);
+    heroData = pad;
+    heroChart.data.datasets[0].data = [...pad];
+    heroChart.update('none');
+  }
+
+  const bad = !!latest.is_anomaly;
+  const st = document.getElementById('hStatus');
+  st.className   = 'status-badge ' + (bad ? 's-alert' : 's-normal');
+  st.textContent = (bad ? '⚠ ' : '● ') + (latest.severity || 'NORMAL');
+  document.getElementById('hLabel').textContent = latest.severity || 'Normal';
+  const bar = document.getElementById('hBar');
+  bar.style.background = getSevColour(latest.severity);
+  bar.style.width = bad ? '15%' : '85%';
+}
+
+async function fetchHeroFeed(){
+  try {
+    const { data, error } = await sb.from('anomaly_logs').select('*')
+      .eq('source','live').order('timestamp',{ascending:false}).limit(60);
+    if(error) throw new Error(error.message);
+    const rows = data || [];
+    if(rows.length === 0){
+      setHeroMode('demo', 'Demonstration data — no sensor readings recorded yet');
+      return;
+    }
+    const latest = rows[0];
+    const fresh  = (Date.now() - new Date(latest.timestamp).getTime()) < LIVE_WINDOW_MS;
+    setHeroMode(fresh ? 'live' : 'last',
+      fresh ? ('Live from ' + (latest.device_id || 'sensor'))
+            : ('Last reading ' + timeAgo(latest.timestamp) +
+               (latest.device_id ? ' from ' + latest.device_id : '')));
+    renderHeroFromRows(rows, latest);
+  } catch(e){
+    // A failed poll must not wipe the card; leave whatever is on screen.
+    console.warn('Hero feed unavailable:', e.message);
+  }
+}
+
 function initSimulation(){
-  // Hero card only — decorative marketing preview above the fold, never
-  // claimed to be live. The #monitor section below reads real data from
-  // Supabase instead (see initMonitorPolling()), which is what changed here.
+  // Kept as the entry point called from showMainSite(). It no longer starts the
+  // animation unconditionally — fetchHeroFeed() decides which state applies.
+  fetchHeroFeed();
+  if(heroFeedInterval) return;
+  heroFeedInterval = setInterval(fetchHeroFeed, 4000);
+}
+
+function startHeroDemo(){
   if(simInterval) return;
   let anomalyTimer=0,anomalyMode=false;
 
@@ -1886,6 +2027,110 @@ function initMonitorPolling(){
   if(monitorPollInterval) return;
   fetchAndRenderMonitor();
   monitorPollInterval = setInterval(fetchAndRenderMonitor, 4000);
+}
+
+// ── EXPORT ENGINE HISTORY ─────────────────────────────────────────────────────
+// Lets a driver take a record of the engine's readings to a mechanic. Reads the
+// same anomaly_logs table the live monitor polls.
+const EXPORT_PAGE  = 1000;    // PostgREST caps a single response at 1000 rows
+const EXPORT_MAX   = 100000;  // refuse to build an unusably large file in-browser
+
+function initExportDefaults(){
+  const to   = new Date();
+  const from = new Date();
+  from.setMonth(from.getMonth() - 1);          // sensible default: the last month
+  const iso = d => d.toISOString().slice(0,10);
+  const f = document.getElementById('exFrom'), t = document.getElementById('exTo');
+  if(f && !f.value) f.value = iso(from);
+  if(t && !t.value) t.value = iso(to);
+}
+
+// Quote every field and double any embedded quotes — a severity or device name
+// containing a comma would otherwise shift every later column in the row.
+function csvCell(v){
+  if(v === null || v === undefined) return '';
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+async function doExportData(){
+  const fromDate = document.getElementById('exFrom').value;
+  const toDate   = document.getElementById('exTo').value;
+  const source   = document.getElementById('exSource').value;
+
+  if(!fromDate || !toDate) return showMsg('exportMsg','Please choose both a start and an end date.','error');
+  if(fromDate > toDate)    return showMsg('exportMsg','The start date must be before the end date.','error');
+
+  setLoading('export', true);
+  hideMsg('exportMsg');
+
+  // Whole-day boundaries in the viewer's own timezone, so "to = today" includes
+  // everything recorded today rather than stopping at midnight this morning.
+  const fromISO = new Date(fromDate + 'T00:00:00').toISOString();
+  const toISO   = new Date(toDate   + 'T23:59:59.999').toISOString();
+
+  try {
+    let rows = [], page = 0;
+    while(true){
+      let q = sb.from('anomaly_logs').select('*')
+                .gte('timestamp', fromISO).lte('timestamp', toISO)
+                .order('timestamp', {ascending:true})
+                .range(page*EXPORT_PAGE, page*EXPORT_PAGE + EXPORT_PAGE - 1);
+      if(source === 'live') q = q.eq('source','live');
+
+      const { data, error } = await withTimeout(q, 'Fetching your data');
+      if(error) throw new Error(error.message);
+
+      rows = rows.concat(data || []);
+      if(!data || data.length < EXPORT_PAGE) break;      // last page
+      if(rows.length >= EXPORT_MAX){
+        showMsg('exportMsg', `Only the first ${EXPORT_MAX.toLocaleString()} readings were included — narrow the date range for a complete export.`, 'error');
+        break;
+      }
+      page++;
+    }
+
+    if(rows.length === 0){
+      setLoading('export', false);
+      return showMsg('exportMsg',
+        source === 'live'
+          ? 'No real engine readings found in that period. Readings appear here once inference.py has run in live mode.'
+          : 'No readings found in that period.', 'error');
+    }
+
+    const header = ['Timestamp','Source','Device','Anomaly score','Severity','Is anomaly',
+                    'Acc X mean (g)','Acc Y mean (g)','Acc Z mean (g)','Temperature (C)'];
+    const lines = [header.join(',')];
+    let anomalies = 0;
+    for(const r of rows){
+      if(r.is_anomaly) anomalies++;
+      lines.push([
+        r.timestamp, r.source, r.device_id, r.anomaly_score, r.severity,
+        r.is_anomaly ? 'YES' : 'no',
+        r.acc_x_mean, r.acc_y_mean, r.acc_z_mean, r.temp_mean
+      ].map(csvCell).join(','));
+    }
+
+    // Leading BOM so Excel reads it as UTF-8 rather than the system codepage.
+    const blob = new Blob(['﻿' + lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `EngineIQ_history_${fromDate}_to_${toDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+
+    showMsg('exportMsg',
+      `✓ Downloaded ${rows.length.toLocaleString()} readings (${anomalies.toLocaleString()} flagged as anomalies) from ${fromDate} to ${toDate}.`,
+      'success');
+  } catch(e){
+    console.error('Export failed:', e);
+    showMsg('exportMsg', e.message || 'Could not prepare the file. Please try again.', 'error');
+  } finally {
+    setLoading('export', false);
+  }
 }
 
 function initScrollReveal(){
