@@ -1100,6 +1100,20 @@ function showMsg(id, text, type){
   el.style.display = 'block';
 }
 function hideMsg(id){ document.getElementById(id).style.display='none'; }
+// Every auth call goes through this. Supabase's client has no timeout of its
+// own, so on a slow or dropped connection its promise can simply never settle
+// — which is what left "Authenticating…" / "Creating your account…" spinning
+// indefinitely with nothing to act on. A rejected race turns that silent hang
+// into a visible, retryable error.
+function withTimeout(promise, label, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(
+      () => reject(new Error(label + ' timed out. Check your internet connection and try again.')),
+      ms || 25000))
+  ]);
+}
+
 function setLoading(form, on){
   const btn = document.getElementById(form+'Btn');
   const ld  = document.getElementById(form+'Loading');
@@ -1165,12 +1179,22 @@ async function doSendReset(){
   setLoading('fpSend', true);
   hideMsg('fpSendMsg');
 
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: SITE_URL });
+  let error;
+  try {
+    ({ error } = await withTimeout(
+      sb.auth.resetPasswordForEmail(email, { redirectTo: SITE_URL }), 'Sending the reset email'));
+  } catch(e){
+    setLoading('fpSend', false);
+    console.error('Reset email failed:', e);
+    return showMsg('fpSendMsg', e.message || 'Could not send the reset email. Please try again.', 'error');
+  }
 
   setLoading('fpSend', false);
 
   if(error){
-    showMsg('fpSendMsg', error.message, 'error');
+    showMsg('fpSendMsg', /rate limit|after \d+ seconds/i.test(error.message)
+      ? 'A reset email was sent very recently. Please wait a minute before requesting another.'
+      : error.message, 'error');
     return;
   }
   fpEmail = email;
@@ -1191,7 +1215,15 @@ async function doVerifyCode(){
   setLoading('fpVerify', true);
   hideMsg('fpVerifyMsg');
 
-  const { data, error } = await sb.auth.verifyOtp({ email, token: code, type: 'recovery' });
+  let data, error;
+  try {
+    ({ data, error } = await withTimeout(
+      sb.auth.verifyOtp({ email, token: code, type: 'recovery' }), 'Verifying the code'));
+  } catch(e){
+    setLoading('fpVerify', false);
+    console.error('Code verification failed:', e);
+    return showMsg('fpVerifyMsg', e.message || 'Could not verify the code. Please try again.', 'error');
+  }
 
   setLoading('fpVerify', false);
 
@@ -1256,7 +1288,14 @@ async function doSetNewPassword(){
   setLoading('fpSave', true);
   hideMsg('fpSaveMsg');
 
-  const { data, error } = await sb.auth.updateUser({ password: pw });
+  let data, error;
+  try {
+    ({ data, error } = await withTimeout(sb.auth.updateUser({ password: pw }), 'Updating your password'));
+  } catch(e){
+    setLoading('fpSave', false);
+    console.error('Password update failed:', e);
+    return showMsg('fpSaveMsg', e.message || 'Could not update the password. Please try again.', 'error');
+  }
 
   setLoading('fpSave', false);
 
@@ -1293,16 +1332,23 @@ async function doSignup(){
   setLoading('signup', true);
   hideMsg('signupMsg');
 
-  const { data, error } = await sb.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: name },
-      // Without this the confirmation email's link points at Supabase's
-      // configured Site URL instead of this page — see SITE_URL above.
-      emailRedirectTo: SITE_URL
-    }
-  });
+  let data, error;
+  try {
+    ({ data, error } = await withTimeout(sb.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+        // Without this the confirmation email's link points at Supabase's
+        // configured Site URL instead of this page — see SITE_URL above.
+        emailRedirectTo: SITE_URL
+      }
+    }), 'Creating your account'));
+  } catch(e){
+    console.error('Signup failed:', e);
+    setLoading('signup', false);
+    return showMsg('signupMsg', e.message || 'Could not create the account. Please try again.', 'error');
+  }
 
   setLoading('signup', false);
 
@@ -1431,22 +1477,28 @@ async function doResend(){
   // Try resend first, fall back to signInWithOtp if resend fails
   let error = null;
 
-  const { error: resendErr } = await sb.auth.resend({
-    type : 'signup',
-    email: resendEmail,
-    options: { emailRedirectTo: SITE_URL }
-  });
-
-  if(resendErr){
-    // Fallback: use signInWithOtp which also sends a confirmation email
-    const { error: otpErr } = await sb.auth.signInWithOtp({
+  try {
+    const { error: resendErr } = await withTimeout(sb.auth.resend({
+      type : 'signup',
       email: resendEmail,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: SITE_URL
-      }
-    });
-    error = otpErr;
+      options: { emailRedirectTo: SITE_URL }
+    }), 'Resending the email');
+
+    if(resendErr){
+      // Fallback: use signInWithOtp which also sends a confirmation email
+      const { error: otpErr } = await withTimeout(sb.auth.signInWithOtp({
+        email: resendEmail,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: SITE_URL
+        }
+      }), 'Resending the email');
+      error = otpErr;
+    }
+  } catch(e){
+    // Leaves the button re-enabled below rather than stuck in its disabled state.
+    console.error('Resend failed:', e);
+    error = e;
   }
 
   document.getElementById('resendLoading').className = 'auth-loading';
@@ -1542,38 +1594,45 @@ async function doLogin(){
   setLoading('login', true);
   hideMsg('loginMsg');
 
-  // Determine if the user typed an email or a full name
-  const isEmail = identifier.includes('@');
-  let emailToUse = identifier;
+  try {
+    // Determine if the user typed an email or a full name
+    const isEmail = identifier.includes('@');
+    let emailToUse = identifier;
 
-  if(!isEmail){
-    // Look up the email by full name stored in user metadata via our profiles table
-    // We query the profiles table where full_name matches
-    const { data: profiles, error: lookupErr } = await sb
-      .from('profiles')
-      .select('email')
-      .ilike('full_name', identifier)
-      .limit(1);
+    if(!isEmail){
+      // Look up the email by full name stored in user metadata via our profiles table
+      // We query the profiles table where full_name matches
+      const { data: profiles, error: lookupErr } = await withTimeout(
+        sb.from('profiles').select('email').ilike('full_name', identifier).limit(1),
+        'Looking up that name');
 
-    if(lookupErr || !profiles || profiles.length === 0){
-      setLoading('login', false);
-      return showMsg('loginMsg','No account found with that name. Try using your email address instead.','error');
+      if(lookupErr || !profiles || profiles.length === 0){
+        return showMsg('loginMsg','No account found with that name. Try using your email address instead.','error');
+      }
+      emailToUse = profiles[0].email;
     }
-    emailToUse = profiles[0].email;
-  }
 
-  const { data, error } = await sb.auth.signInWithPassword({ email: emailToUse, password });
+    const { data, error } = await withTimeout(
+      sb.auth.signInWithPassword({ email: emailToUse, password }), 'Sign-in');
 
-  setLoading('login', false);
-
-  if(error){
-    if(error.message.toLowerCase().includes('invalid login credentials')){
-      showMsg('loginMsg','Incorrect email/name or password. Please try again.','error');
-    } else {
-      showMsg('loginMsg', error.message, 'error');
+    if(error){
+      if(error.message.toLowerCase().includes('invalid login credentials')){
+        showMsg('loginMsg','Incorrect email/name or password. Please try again.','error');
+      } else if(/email not confirmed/i.test(error.message)){
+        showMsg('loginMsg','Please confirm your email address first — check your inbox for the confirmation link.','error');
+      } else {
+        showMsg('loginMsg', error.message, 'error');
+      }
+      return;
     }
-  } else {
     showMainSite(data.user);
+  } catch(e){
+    console.error('Sign-in failed:', e);
+    showMsg('loginMsg', e.message || 'Sign-in failed. Please try again.', 'error');
+  } finally {
+    // finally, not a trailing call — an exception anywhere above used to skip
+    // this entirely and strand the spinner.
+    setLoading('login', false);
   }
 }
 
@@ -1679,7 +1738,20 @@ window.addEventListener('load', async ()=>{
     const isGoogleFlow = localStorage.getItem('engineiq-pending-oauth') === 'google';
     localStorage.removeItem('engineiq-pending-oauth');
 
-    const { data, error } = await sb.auth.exchangeCodeForSession(oauthCode);
+    let data, error;
+    try {
+      ({ data, error } = await withTimeout(sb.auth.exchangeCodeForSession(oauthCode), 'Signing you in'));
+    } catch(e){
+      // Without this the "Signing you in…" overlay stayed up indefinitely,
+      // covering the whole auth box with no way back except a page reload.
+      console.error('Code exchange threw:', e);
+      if(authBox)   authBox.style.display   = '';
+      if(oauthProc) oauthProc.style.display = 'none';
+      history.replaceState(null, '', window.location.pathname);
+      switchTab('login');
+      showMsg('loginMsg', e.message || 'Sign-in timed out. Please try again.', 'error');
+      return;
+    }
     history.replaceState(null, '', window.location.pathname);
 
     if(data?.session?.user){
