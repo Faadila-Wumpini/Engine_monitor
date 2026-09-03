@@ -622,9 +622,8 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
           Check your email
         </div>
         <div style="font-size:0.88rem;color:var(--muted2);line-height:1.65;margin-bottom:1.25rem">
-          We sent a reset email to <strong id="fpSentTo" style="color:var(--text)"></strong>.
-          Enter the 6-digit code below — or simply click the link in that email, which brings you
-          straight back here.
+          We sent a 6-digit code to <strong id="fpSentTo" style="color:var(--text)"></strong>.
+          Enter it below to choose a new password. The code expires in 1 hour.
         </div>
         <div class="auth-field">
           <label>6-digit code</label>
@@ -1191,12 +1190,12 @@ async function doVerifyCode(){
   setLoading('fpVerify', false);
 
   if(error || !data?.session){
-    // The default Supabase email template sends only a link, with no {{ .Token }}
-    // in it — so if custom SMTP hasn't been configured there is no code to type.
-    // Say so, rather than leaving the user retrying a code they never received.
+    // Most likely causes, in order: a mistyped digit, a code that has already
+    // been used, or one older than its one-hour expiry.
     showMsg('fpVerifyMsg',
-      (error?.message || 'That code could not be verified.') +
-      ' If the email contained only a link and no code, click the link instead — it works the same way.',
+      /expired|invalid|token/i.test(error?.message || '')
+        ? 'That code is invalid or has expired. Request a new one and try again.'
+        : (error?.message || 'That code could not be verified. Please check the digits and try again.'),
       'error');
     return;
   }
@@ -1204,6 +1203,15 @@ async function doVerifyCode(){
 }
 
 function enterPasswordStage(){
+  // Arriving from a reset link means the ?code= handler hid the auth box and
+  // raised the "Verifying your link…" overlay. Both have to be undone here or
+  // the password form is built correctly but stays invisible behind a spinner
+  // that never clears — the exchange having actually succeeded.
+  const authBox   = document.getElementById('authBox');
+  const oauthProc = document.getElementById('oauthProcessing');
+  if(authBox)   authBox.style.display   = '';
+  if(oauthProc) oauthProc.style.display = 'none';
+
   document.getElementById('loginForm').style.display  = 'none';
   document.getElementById('signupForm').style.display = 'none';
   document.getElementById('authTabs').style.display   = 'none';
@@ -1681,6 +1689,9 @@ window.addEventListener('load', async ()=>{
     // the error it's reporting.
     const { data: { session: recovered } } = await sb.auth.getSession();
     if(recovered?.user){
+      // Same rule as above: a reset in progress must reach the password form
+      // rather than being signed straight in.
+      if(isRecoveryReturn()){ enterPasswordStage(); return; }
       showMainSite(recovered.user);
       return;
     }
