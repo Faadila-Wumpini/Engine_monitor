@@ -46,8 +46,6 @@
 [data-theme="light"] .supervisor-box{background:#f0f4f8;border-color:#c8d8e8;}
 [data-theme="light"] .auth-field input{background:#f8fafc;border-color:#c8d8e8;color:#1e293b;}
 [data-theme="light"] .auth-field input:focus{border-color:#1a56db;box-shadow:0 0 0 3px rgba(26,86,219,0.1);}
-[data-theme="light"] .google-btn{background:#f8fafc;color:#1e293b;border-color:#c8d8e8;}
-[data-theme="light"] .google-btn:hover{border-color:#1a56db;background:#eef2ff;}
 [data-theme="light"] .pw-wrap input{background:#f8fafc;}
 [data-theme="light"] .tbl-wrap{background:#fff;border-color:#c8d8e8;}
 [data-theme="light"] .history-table th{background:#f0f4f8;}
@@ -245,20 +243,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 }
 .auth-btn:hover{background:#fff;transform:translateY(-1px)}
 .auth-btn:disabled{background:var(--border2);color:var(--muted);cursor:not-allowed;transform:none}
-.google-btn{
-  width:100%;padding:0.75rem;background:var(--s2);color:var(--text);
-  font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.04em;
-  border:1px solid var(--border2);cursor:pointer;margin-top:0.6rem;
-  transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;
-}
-.google-btn:hover{border-color:#4285F4;color:#fff;background:rgba(66,133,244,0.08);transform:translateY(-1px)}
-.google-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
-.google-icon{width:16px;height:16px;flex-shrink:0}
-.or-divider{
-  display:flex;align-items:center;gap:10px;margin:0.9rem 0 0;
-  font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:0.06em;
-}
-.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border2)}
 .auth-msg{
   margin-top:1rem;padding:0.65rem 0.9rem;
   font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.04em;
@@ -486,13 +470,13 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   <div class="grid-bg"></div>
   <div class="glow"></div>
 
-  <!-- OAuth processing indicator -->
+  <!-- Shown while an emailed confirmation / password-reset link is verified -->
   <div id="oauthProcessing" style="display:none;position:absolute;inset:0;z-index:2;
     display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px">
     <div style="width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--acc);
       border-radius:50%;animation:spin 0.8s linear infinite"></div>
     <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.08em">
-      Signing you in…
+      Verifying your link…
     </div>
   </div>
 
@@ -529,16 +513,6 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
       <button class="auth-btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
       <div class="auth-loading" id="loginLoading"><span class="spinner"></span>Authenticating…</div>
       <div class="auth-msg" id="loginMsg"></div>
-      <div class="or-divider">or</div>
-      <button class="google-btn" id="loginGoogleBtn" onclick="doGoogleAuth()">
-        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-        Continue with Google
-      </button>
       <div class="auth-divider">
         No account yet?<span class="auth-switch" onclick="switchTab('signup')">Create one</span>
       </div>
@@ -587,16 +561,6 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
       <button class="auth-btn" id="signupBtn" onclick="doSignup()">Create Account →</button>
       <div class="auth-loading" id="signupLoading"><span class="spinner"></span>Creating your account…</div>
       <div class="auth-msg" id="signupMsg"></div>
-      <div class="or-divider" id="signupOrDivider">or</div>
-      <button class="google-btn" id="signupGoogleBtn" onclick="doGoogleAuth()">
-        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-        Continue with Google
-      </button>
 
       <!-- confirmation sent state -->
       <div id="confirmPanel" style="display:none">
@@ -992,16 +956,16 @@ const oauthErrorDescription = decodeOnce(oauthErrorDescriptionRaw);
 // Supabase tags implicit-flow recovery returns with type=recovery. The PKCE
 // (?code=...) variant carries no such marker, so doSendReset() also leaves a
 // localStorage breadcrumb — without one of the two, a returning reset link is
-// indistinguishable from a Google sign-in and would log the user straight in
-// without ever letting them set a new password.
+// indistinguishable from an email-confirmation link and would log the user
+// straight in without ever letting them set a new password.
 const hashType = hashParams.get('type');
 
 function isRecoveryReturn(){
   if(hashType === 'recovery') return true;
   try { return !!localStorage.getItem('engineiq-pending-recovery'); } catch(e){ return false; }
 }
-// Where Supabase sends the browser back to after email confirmation, password
-// recovery, and Google OAuth. This MUST include the /Engine_monitor/ path —
+// Where Supabase sends the browser back to after email confirmation and
+// password recovery. This MUST include the /Engine_monitor/ path —
 // GitHub Pages serves this as a PROJECT site, so the bare user-page root
 // (https://faadila-wumpini.github.io/) is a 404 "There isn't a GitHub Pages
 // site here". Leaving it off any one call makes Supabase fall back to the
@@ -1197,8 +1161,8 @@ async function doSendReset(){
     return;
   }
   fpEmail = email;
-  // Lets the 'load' handler tell a returning reset link apart from a Google
-  // sign-in or an email confirmation, since all three come back as ?code=...
+  // Lets the 'load' handler tell a returning reset link apart from an email
+  // confirmation, since both come back as ?code=...
   try { localStorage.setItem('engineiq-pending-recovery', email); } catch(e){}
   document.getElementById('fpSentTo').textContent = email;
   showFpStage(2);
@@ -1415,8 +1379,6 @@ function showConfirmPanel(email){
   document.getElementById('signupLoading').style.display   = 'none';
   document.getElementById('signupMsg').style.display       = 'none';
   document.getElementById('signupDivider').style.display   = 'none';
-  document.getElementById('signupOrDivider').style.display = 'none';
-  document.getElementById('signupGoogleBtn').style.display = 'none';
   document.getElementById('confirmPanel').style.display    = 'block';
   // hide all signup fields
   document.querySelectorAll('#signupForm .auth-field').forEach(el=>el.style.display='none');
@@ -1429,8 +1391,6 @@ function resetSignup(){
   document.getElementById('confirmPanel').style.display    = 'none';
   document.getElementById('signupBtn').style.display       = '';
   document.getElementById('signupDivider').style.display   = '';
-  document.getElementById('signupOrDivider').style.display = '';
-  document.getElementById('signupGoogleBtn').style.display = '';
   document.querySelectorAll('#signupForm .auth-field').forEach(el=>el.style.display='');
   ['signupName','signupEmail','signupPassword','signupConfirm']
     .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
@@ -1541,47 +1501,6 @@ function toggleTheme(){
     });
   }
 })();
-
-async function doGoogleAuth(){
-  // disable both google buttons to prevent double click
-  // Show processing overlay
-  const authBox = document.getElementById('authBox');
-  const oauthProc = document.getElementById('oauthProcessing');
-  if(authBox) authBox.style.display = 'none';
-  if(oauthProc){ oauthProc.style.display = 'flex'; }
-  ['loginGoogleBtn','signupGoogleBtn'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){ el.disabled=true; }
-  });
-  // Marks which flow the returning ?code=... belongs to. Both Google sign-in
-  // AND the email-confirmation link come back to this same page with a
-  // ?code=..., and they need different failure messages — an email
-  // confirmation that can't be exchanged is usually already confirmed and
-  // just needs a normal sign-in, which is not true of a failed Google login.
-  localStorage.setItem('engineiq-pending-oauth', 'google');
-  // Drop any abandoned reset breadcrumb so it can't be mistaken for this return.
-  try { localStorage.removeItem('engineiq-pending-recovery'); } catch(e){}
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: SITE_URL,
-      skipBrowserRedirect: false,
-    }
-  });
-  if(error){
-    localStorage.removeItem('engineiq-pending-oauth');
-    const authBox2 = document.getElementById('authBox');
-    const oauthProc2 = document.getElementById('oauthProcessing');
-    if(authBox2) authBox2.style.display = '';
-    if(oauthProc2) oauthProc2.style.display = 'none';
-    showMsg('loginMsg', error.message, 'error');
-    ['loginGoogleBtn','signupGoogleBtn'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el){ el.disabled=false; }
-    });
-  }
-  // If no error, browser will redirect to Google — no further action needed
-}
 
 async function doLogin(){
   const identifier = document.getElementById('loginIdentifier').value.trim();
@@ -1696,7 +1615,6 @@ window.addEventListener('load', async ()=>{
       refresh_token: hashRefreshToken
     });
     history.replaceState(null, '', window.location.pathname);
-    localStorage.removeItem('engineiq-pending-oauth');
     if(data?.session?.user){
       if(isRecoveryReturn()){ enterPasswordStage(); return; }
       showMainSite(data.session.user);
@@ -1715,49 +1633,43 @@ window.addEventListener('load', async ()=>{
     // (e.g. "Unable to exchange external code" = provider credentials
     // mismatch between Supabase and the identity provider's console).
     history.replaceState(null, '', window.location.pathname);
-    localStorage.removeItem('engineiq-pending-oauth');
-    console.error('OAuth provider error:', oauthErrorDescription);
+    console.error('Auth redirect error:', oauthErrorDescription);
     switchTab('login');   // loginMsg is hidden while the sign-up tab is active
-    showMsg('loginMsg', `Google sign-in failed: ${oauthErrorDescription}`, 'error');
+    showMsg('loginMsg', `That link could not be completed: ${oauthErrorDescription}`, 'error');
     return;
   }
 
   if(oauthCode){
-    // Returning from Google. detectSessionInUrl is off (see createClient
-    // options above), so this is the ONLY place the code gets exchanged —
-    // no race with an automatic in-SDK attempt, and we get the real error
-    // back if it fails instead of nothing at all.
+    // Returning from an email confirmation or a password-reset link, both of
+    // which come back as ?code=... under the PKCE flow. detectSessionInUrl is
+    // off (see createClient options above), so this is the ONLY place the code
+    // gets exchanged — no race with an automatic in-SDK attempt, and we get
+    // the real error back if it fails instead of nothing at all.
     const authBox  = document.getElementById('authBox');
     const oauthProc= document.getElementById('oauthProcessing');
     if(authBox)    authBox.style.display   = 'none';
     if(oauthProc)  oauthProc.style.display = 'flex';
 
-    // Set by doGoogleAuth() just before it redirects out to Google. Absent
-    // means this ?code=... came from an email confirmation link instead.
-    const isGoogleFlow = localStorage.getItem('engineiq-pending-oauth') === 'google';
-    localStorage.removeItem('engineiq-pending-oauth');
-
     let data, error;
     try {
-      ({ data, error } = await withTimeout(sb.auth.exchangeCodeForSession(oauthCode), 'Signing you in'));
+      ({ data, error } = await withTimeout(sb.auth.exchangeCodeForSession(oauthCode), 'Verifying your link'));
     } catch(e){
-      // Without this the "Signing you in…" overlay stayed up indefinitely,
-      // covering the whole auth box with no way back except a page reload.
+      // Without this the overlay stayed up indefinitely, covering the whole
+      // auth box with no way back except a page reload.
       console.error('Code exchange threw:', e);
       if(authBox)   authBox.style.display   = '';
       if(oauthProc) oauthProc.style.display = 'none';
       history.replaceState(null, '', window.location.pathname);
       switchTab('login');
-      showMsg('loginMsg', e.message || 'Sign-in timed out. Please try again.', 'error');
+      showMsg('loginMsg', e.message || 'That link could not be verified. Please try again.', 'error');
       return;
     }
     history.replaceState(null, '', window.location.pathname);
 
     if(data?.session?.user){
-      // Google takes precedence: a reset that was requested but never finished
-      // leaves its breadcrumb behind, and that stale flag must not hijack a
-      // later Google sign-in and demand a new password.
-      if(!isGoogleFlow && isRecoveryReturn()){ enterPasswordStage(); return; }
+      // A password-reset link must land on the new-password form rather than
+      // signing the user straight in — see isRecoveryReturn().
+      if(isRecoveryReturn()){ enterPasswordStage(); return; }
       showMainSite(data.session.user);
       return;
     }
@@ -1777,14 +1689,7 @@ window.addEventListener('load', async ()=>{
       if(authBox)   authBox.style.display   = '';
       if(oauthProc) oauthProc.style.display = 'none';
       console.error('Code exchange failed:', error);
-      if(isGoogleFlow){
-        // switchTab, because "Continue with Google" is reachable from the
-        // sign-up tab — and loginMsg lives inside the login form, which that
-        // tab hides. The message was being written into a hidden element, so
-        // a failed Google sign-in looked like a silent bounce back to sign-up.
-        switchTab('login');
-        showMsg('loginMsg', error?.message ? `Google sign-in failed: ${error.message}` : 'Google sign-in failed. Please try again.', 'error');
-      } else {
+      {
         // Email confirmation. Supabase already marked the address confirmed
         // at its /auth/v1/verify step BEFORE redirecting here, so the account
         // is live even though this exchange failed. The usual cause is
