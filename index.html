@@ -378,6 +378,12 @@ section{padding:6rem 3rem}
 .mon-card{background:var(--bg);border:1px solid var(--border);padding:1.85rem;position:relative}
 .mon-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--acc),transparent)}
 .mon-title{font-family:'DM Mono',monospace;font-size:0.8rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:1.1rem}
+/* Live-sensor status strip above the monitor grid. The left border and chip
+   both take the state colour, so the state is readable at a glance without
+   reading the sentence. */
+.mon-status{display:flex;align-items:center;gap:0.85rem;flex-wrap:wrap;background:var(--s2);border:1px solid var(--border2);border-left:2px solid var(--muted);padding:0.85rem 1.1rem;margin:-1rem 0 2.25rem;max-width:820px}
+.ms-chip{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;padding:2px 8px;border:1px solid var(--border2);color:var(--muted);white-space:nowrap}
+.ms-text{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);letter-spacing:0.02em;line-height:1.65;flex:1;min-width:240px}
 .big-score{font-family:'Bebas Neue',sans-serif;font-size:5rem;line-height:1;letter-spacing:2px}
 .score-normal{color:var(--green)}.score-low{color:var(--amber)}.score-med{color:var(--acc2)}.score-high{color:var(--red)}
 .severity-badge{display:inline-block;font-family:'DM Mono',monospace;font-size:0.85rem;padding:4px 12px;margin-top:0.5rem;letter-spacing:0.1em}
@@ -824,6 +830,14 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
   <span class="s-tag reveal">// live monitor</span>
   <h2 class="s-title reveal">Engine Health Monitor</h2>
   <p class="s-sub reveal">Real-time anomaly detection — powered by Isolation Forest ML model trained on 9,500 normal engine readings.</p>
+  <!-- Whether the panels below are being fed by the sensors right now. A paused
+       sensor is a normal, self-resolving condition — not an error — so the copy
+       says when the last reading arrived and that monitoring resumes on its own,
+       rather than leaving stale numbers on screen with no explanation. -->
+  <div id="monStatus" class="mon-status reveal">
+    <span class="ms-chip" id="msChip">CHECKING</span>
+    <span class="ms-text" id="msText">Checking live monitoring status…</span>
+  </div>
   <div class="monitor-grid">
     <div class="mon-card reveal">
       <div class="mon-title">// Current Status</div>
@@ -1961,22 +1975,66 @@ function tempFromRow(row){
   return k!=null ? k - 273.15 : null;
 }
 
+// Live-sensor status for the monitor section. Mirrors the hero card's three
+// states (see setHeroMode) but worded for someone reading the dashboard rather
+// than the person running inference.py.
+function setMonitorStatus(state, text){
+  const wrap = document.getElementById('monStatus');
+  const chip = document.getElementById('msChip');
+  const txt  = document.getElementById('msText');
+  if(!wrap || !chip || !txt) return;
+  const colour = state === 'live'   ? 'var(--green)'
+               : state === 'paused' ? 'var(--amber)'
+               :                      'var(--muted)';
+  chip.textContent       = state === 'live'   ? '● LIVE'
+                         : state === 'paused' ? '● PAUSED'
+                         :                      '○ NOT STARTED';
+  chip.style.color       = colour;
+  chip.style.borderColor = colour;
+  wrap.style.borderLeftColor = colour;
+  txt.textContent = text;
+}
+
 async function fetchAndRenderMonitor(){
-  const [rowsRes, totalRes, normalRes, lowRes, medRes, highRes] = await Promise.all([
+  const [rowsRes, totalRes, normalRes, lowRes, medRes, highRes, liveRes] = await Promise.all([
     sb.from('anomaly_logs').select('*').order('timestamp',{ascending:false}).limit(60),
     sb.from('anomaly_logs').select('*',{count:'exact',head:true}),
     sb.from('anomaly_logs').select('*',{count:'exact',head:true}).eq('severity','NORMAL'),
     sb.from('anomaly_logs').select('*',{count:'exact',head:true}).eq('severity','LOW'),
     sb.from('anomaly_logs').select('*',{count:'exact',head:true}).eq('severity','MEDIUM'),
     sb.from('anomaly_logs').select('*',{count:'exact',head:true}).eq('severity','HIGH'),
+    // Status is judged on 'live' rows alone — an AI4I simulation replay must
+    // never make the physical sensor look connected.
+    sb.from('anomaly_logs').select('timestamp,device_id').eq('source','live')
+      .order('timestamp',{ascending:false}).limit(1),
   ]);
 
   if(rowsRes.error){ console.error('Supabase fetch failed:', rowsRes.error); return; }
 
+  // Runs before the empty-data return below, so the strip is correct even when
+  // nothing has ever been logged.
+  const liveRow = (liveRes && liveRes.data && liveRes.data[0]) || null;
+  if(!liveRow){
+    setMonitorStatus('none',
+      'Live monitoring has not started yet. It will begin automatically as soon as ' +
+      'the sensors start streaming readings from the engine.');
+  } else {
+    const age = Date.now() - new Date(liveRow.timestamp).getTime();
+    const dev = liveRow.device_id ? ' from ' + liveRow.device_id : '';
+    if(age < LIVE_WINDOW_MS){
+      setMonitorStatus('live', 'Live monitoring active — streaming' + dev + '.');
+    } else {
+      setMonitorStatus('paused',
+        'Live monitoring paused — last reading ' + timeAgo(liveRow.timestamp) + dev +
+        '. Live monitoring will continue automatically when the sensors resume ' +
+        'streaming data from the engine.');
+    }
+  }
+
   const rows = rowsRes.data || [];
   if(rows.length===0){
     document.getElementById('historyBody').innerHTML =
-      '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:1rem">Waiting for inference.py to log data...</td></tr>';
+      '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:1rem">No readings recorded yet — events will appear here once monitoring begins.</td></tr>';
     return;
   }
 

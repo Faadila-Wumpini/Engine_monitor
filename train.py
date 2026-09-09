@@ -33,6 +33,7 @@ WINDOW_SIZE   = 50                    # rows per feature window
 STEP          = 25                    # window slide step (50% overlap)
 CONTAMINATION = 0.05                  # expected % of anomalies (5%)
 RANDOM_STATE  = 42                    # for reproducibility
+HOLDOUT_FRAC  = 0.20                  # normal windows reserved for out-of-sample validation
 
 
 def load_dataset(path: str) -> pd.DataFrame:
@@ -120,6 +121,100 @@ def train_model(X_normal: pd.DataFrame, X_fault: pd.DataFrame):
     print("  ✓ Model trained successfully!\n")
     
     return model, scaler, X_normal_scaled, X_fault_scaled if len(X_fault) > 0 else None
+
+
+def validate_holdout(X_normal: pd.DataFrame, X_fault: pd.DataFrame):
+    """
+    Out-of-sample validation, reported BEFORE the final model is fitted.
+
+    WHY THIS EXISTS
+    ---------------
+    Fitting on every normal window and then measuring the false-positive rate on
+    those same windows gives an IN-SAMPLE number: it says how well the forest
+    memorised its own training set, not how it behaves on normal operation it has
+    never seen. This function reserves HOLDOUT_FRAC of the normal windows, fits a
+    throwaway model on the rest, and reports the false-positive rate on the
+    reserved part — a genuine generalisation estimate.
+
+    WHY THE SPLIT IS CONTIGUOUS, NOT RANDOM
+    ---------------------------------------
+    Windows overlap by WINDOW_SIZE - STEP raw rows (25 of 50 here). A random
+    split would place two windows sharing 25 identical raw rows on opposite sides
+    of the split, leaking training data into the holdout and flattering the
+    result. So we split contiguously — first (1 - HOLDOUT_FRAC) of the windows
+    train, the tail holds out — and discard the windows straddling the seam, so
+    no holdout window shares a single raw row with a training window.
+
+    The model/scaler fitted here are deliberately DISCARDED. The artefacts saved
+    to disk are refitted on all normal windows afterwards (standard practice:
+    validate on a holdout, then refit on everything for deployment), so
+    model.pkl, scaler.pkl and threshold.json stay exactly as documented.
+    """
+    print("── Out-of-sample validation (holdout) ───────────────")
+
+    n = len(X_normal)
+    # windows sharing raw rows across the seam: ceil(WINDOW_SIZE / STEP) - 1
+    overlap_guard = -(-WINDOW_SIZE // STEP) - 1
+    n_train = int(n * (1 - HOLDOUT_FRAC))
+
+    if n_train < 20 or n - n_train - overlap_guard < 10:
+        print(f"  ⚠ Only {n} normal windows — too few to hold out meaningfully.")
+        print("    Skipping out-of-sample validation.\n")
+        return None
+
+    X_tr = X_normal.iloc[:n_train]
+    X_ho = X_normal.iloc[n_train + overlap_guard:]
+
+    print(f"  Split          : contiguous, {int((1-HOLDOUT_FRAC)*100)}/{int(HOLDOUT_FRAC*100)}")
+    print(f"  Train windows  : {len(X_tr)}")
+    print(f"  Holdout windows: {len(X_ho)}  (never seen during fitting)")
+    print(f"  Discarded seam : {overlap_guard} window(s), to prevent overlap leakage\n")
+
+    # Scaler is fitted on the training split ONLY — fitting it on all normal
+    # data first would leak the holdout's min/max into the training scale.
+    X_tr_scaled, scaler_tr = normalise(X_tr)
+    X_ho_scaled, _         = normalise(X_ho, scaler=scaler_tr)
+
+    model_tr = IsolationForest(
+        n_estimators=200,
+        contamination=CONTAMINATION,
+        max_samples='auto',
+        random_state=RANDOM_STATE,
+        n_jobs=-1
+    )
+    model_tr.fit(X_tr_scaled)
+
+    scores_tr = model_tr.score_samples(X_tr_scaled)
+    scores_ho = model_tr.score_samples(X_ho_scaled)
+
+    # Threshold calibrated on the TRAINING split only, then applied unchanged
+    # to the holdout — the same derivation compute_threshold() uses.
+    thr_tr = float(np.percentile(scores_tr, CONTAMINATION * 100))
+
+    fpr_in  = np.mean(scores_tr < thr_tr) * 100
+    fpr_out = np.mean(scores_ho < thr_tr) * 100
+
+    print(f"  Threshold (from train split) : {thr_tr:.4f}")
+    print(f"  FPR in-sample  (train)       : {fpr_in:.1f}%")
+    print(f"  FPR OUT-OF-SAMPLE (holdout)  : {fpr_out:.1f}%   ← quote this one")
+
+    result = {
+        'n_train': len(X_tr), 'n_holdout': len(X_ho),
+        'threshold': thr_tr, 'fpr_in_sample': fpr_in, 'fpr_out_of_sample': fpr_out,
+        'recall_holdout_model': None,
+    }
+
+    # Fault recall from this holdout-trained model, for an honest pairing with
+    # the out-of-sample FPR above (faults are never trained on either way).
+    if len(X_fault) > 0:
+        X_fault_scaled, _ = normalise(X_fault, scaler=scaler_tr)
+        scores_fault = model_tr.score_samples(X_fault_scaled)
+        recall = np.mean(scores_fault < thr_tr) * 100
+        result['recall_holdout_model'] = recall
+        print(f"  Fault recall (same model)    : {recall:.1f}%  on {len(X_fault)} fault windows")
+
+    print()
+    return result
 
 
 def evaluate_model(model, X_normal_scaled, X_fault_scaled):
@@ -236,11 +331,21 @@ def save_model(model, scaler, threshold):
     print()
 
 
-def print_summary():
+def print_summary(holdout=None):
     print("=" * 55)
     print("  TRAINING COMPLETE")
     print("=" * 55)
     print()
+    if holdout:
+        print("  Generalisation (quote these, not the in-sample figures):")
+        print(f"    Holdout windows        : {holdout['n_holdout']} "
+              f"(trained on {holdout['n_train']})")
+        print(f"    FPR out-of-sample      : {holdout['fpr_out_of_sample']:.1f}%")
+        print(f"    FPR in-sample          : {holdout['fpr_in_sample']:.1f}%")
+        if holdout['recall_holdout_model'] is not None:
+            print(f"    Fault recall (holdout model): "
+                  f"{holdout['recall_holdout_model']:.1f}%")
+        print()
     print("  Files created:")
     print("    model.pkl  — the trained Isolation Forest model")
     print("    scaler.pkl — the feature scaler")
@@ -256,24 +361,30 @@ def print_summary():
 if __name__ == '__main__':
     # Step 1 — Load dataset
     df = load_dataset(DATASET_PATH)
-    
+
     # Step 2 — Prepare training and evaluation data
     X_normal, X_fault = prepare_training_data(df)
-    
-    # Step 3 — Train model
+
+    # Step 3 — Out-of-sample validation on a held-out slice of normal data.
+    #          Runs BEFORE the final fit and throws its own model away; this is
+    #          the number to quote for generalisation, because everything from
+    #          Step 4 onward is measured in-sample by construction.
+    holdout = validate_holdout(X_normal, X_fault)
+
+    # Step 4 — Train the final model on ALL normal windows (deployment refit)
     model, scaler, X_normal_scaled, X_fault_scaled = train_model(X_normal, X_fault)
-    
-    # Step 4 — Evaluate
+
+    # Step 5 — Evaluate (in-sample for the normal class; faults are unseen)
     scores_normal, scores_fault = evaluate_model(model, X_normal_scaled, X_fault_scaled)
 
-    # Step 5 — Auto-tune the anomaly threshold from the contamination rate
+    # Step 6 — Auto-tune the anomaly threshold from the contamination rate
     threshold = compute_threshold(scores_normal)
 
-    # Step 6 — Plot results
+    # Step 7 — Plot results
     plot_results(scores_normal, scores_fault, threshold=threshold)
 
-    # Step 7 — Save model, scaler, and threshold
+    # Step 8 — Save model, scaler, and threshold
     save_model(model, scaler, threshold)
-    
-    # Step 7 — Summary
-    print_summary()
+
+    # Step 9 — Summary
+    print_summary(holdout)
