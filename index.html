@@ -382,6 +382,7 @@ section{padding:6rem 3rem}
    both take the state colour, so the state is readable at a glance without
    reading the sentence. */
 .mon-status{display:flex;align-items:center;gap:0.85rem;flex-wrap:wrap;background:var(--s2);border:1px solid var(--border2);border-left:2px solid var(--muted);padding:0.85rem 1.1rem;margin:-1rem 0 2.25rem;max-width:820px}
+.mon-status.solo{margin-top:0.5rem}
 .ms-chip{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;padding:2px 8px;border:1px solid var(--border2);color:var(--muted);white-space:nowrap}
 .ms-body{display:flex;flex-direction:column;gap:0.35rem;flex:1;min-width:240px}
 .ms-text{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);letter-spacing:0.02em;line-height:1.65}
@@ -831,7 +832,7 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
 <section id="monitor" style="padding:6rem 3rem">
   <span class="s-tag reveal">// live monitor</span>
   <h2 class="s-title reveal">Engine Health Monitor</h2>
-  <p class="s-sub reveal">Real-time anomaly detection — powered by Isolation Forest ML model trained on 9,500 normal engine readings.</p>
+  <p class="s-sub reveal" id="monSub">Real-time anomaly detection — powered by Isolation Forest ML model trained on 9,500 normal engine readings.</p>
   <!-- Whether the panels below are being fed by the sensors right now. A paused
        sensor is a normal, self-resolving condition — not an error — so the copy
        says when the last reading arrived and that monitoring resumes on its own,
@@ -2009,6 +2010,17 @@ function setMonitorStatus(state, text, when){
   if(whenEl){
     if(when){ whenEl.textContent = when; whenEl.hidden = false; }
     else    { whenEl.textContent = '';   whenEl.hidden = true;  }
+  }
+  // "Real-time anomaly detection" is only true while data is actually
+  // streaming, so the subtitle is shown for the live state alone and the strip
+  // takes .solo to keep its spacing under the heading. It starts visible in the
+  // markup on purpose: if this script never runs, the page degrades to the
+  // static description rather than to a missing one.
+  const subEl = document.getElementById('monSub');
+  if(subEl){
+    const live = state === 'live';
+    subEl.hidden = !live;
+    wrap.classList.toggle('solo', !live);
   }
   const colour = state === 'live'   ? 'var(--green)'
                : state === 'paused' ? 'var(--amber)'
