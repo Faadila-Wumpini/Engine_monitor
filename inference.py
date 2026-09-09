@@ -21,6 +21,7 @@ import argparse
 import asyncio
 import json
 import os
+import sys
 import time
 import joblib
 import numpy as np
@@ -28,6 +29,19 @@ import pandas as pd
 from datetime import datetime
 from supabase import create_client
 from preprocessor import extract_features
+
+# Windows terminals still default to a legacy codepage (cp1252/cp437) that
+# cannot encode the box-drawing banner, the check/warning marks, or the
+# arrows used all through the status output. Without this the very first
+# print() dies with UnicodeEncodeError - after the ~2 minutes of imports
+# above have already run - so the run looks like it simply does nothing.
+# errors='replace' keeps a mis-encoded glyph from ever killing a live run
+# mid-stream on a console we don't control.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, OSError):
+        pass
 
 # ── SETTINGS ──────────────────────────────────────────────────────────────────
 # Anchor every file to this script's own folder — NOT to whatever directory the
@@ -220,7 +234,13 @@ def score_window(model, scaler, window_df, threshold, fs=1.0):
         if col not in feature_df.columns:
             feature_df[col] = 0
     feature_df = feature_df[expected]
-    scaled = scaler.transform(feature_df)
+    # scaler.transform() drops the column names, so handing its bare ndarray
+    # to a model that was fitted on a named DataFrame makes sklearn warn
+    # ("X does not have valid feature names") on every single window — at the
+    # live notification rate that buries the actual score output. The column
+    # order is already pinned to `expected` on the line above, so rewrapping
+    # with the same names is purely restoring what transform() discarded.
+    scaled = pd.DataFrame(scaler.transform(feature_df), columns=expected)
 
     score    = model.score_samples(scaled)[0]
     severity = get_severity(score, threshold)
@@ -262,7 +282,7 @@ def print_result(result, extra=''):
 # ══════════════════════════════════════════════════════════════════════════════
 # MODE 1 — SIMULATION
 # ══════════════════════════════════════════════════════════════════════════════
-def run_simulation(model, scaler, supabase):
+def run_simulation(model, scaler, supabase, log_every=1):
     print("=" * 55)
     print("  MODE: SIMULATION")
     print("  Replaying AI4I dataset as live engine data.")
@@ -316,7 +336,10 @@ def run_simulation(model, scaler, supabase):
             if result['is_anomaly']:
                 anomaly_count += 1
 
-            log_to_supabase(supabase, result, window_df, source='simulation')
+            # Scoring is unaffected by log_every; only the Supabase write is
+            # throttled, so detection behaviour is identical at any N.
+            if window_count % log_every == 0:
+                log_to_supabase(supabase, result, window_df, source='simulation')
             save_result(result)
             time.sleep(SIMULATE_DELAY)
 
@@ -357,7 +380,7 @@ async def scan_for_sensor(device_id=None):
 # ══════════════════════════════════════════════════════════════════════════════
 # MODE 2 — LIVE BLUETOOTH
 # ══════════════════════════════════════════════════════════════════════════════
-async def run_bluetooth(ai4i_model, ai4i_scaler, supabase, device_id=None):
+async def run_bluetooth(ai4i_model, ai4i_scaler, supabase, device_id=None, log_every=1):
     """Scan for ESP32 via BLE and score live sensor data using the
     BLE-specific model (trained on real accX/accY/accZ/temp data via
     train_bluetooth.py) — NOT the AI4I model, which has never seen this
@@ -369,7 +392,7 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase, device_id=None):
     except ImportError:
         print("❌ bleak not installed. Run:  pip install bleak")
         print("   Falling back to simulation mode...\n")
-        run_simulation(ai4i_model, ai4i_scaler, supabase)
+        run_simulation(ai4i_model, ai4i_scaler, supabase, log_every=log_every)
         return
 
     ble_model, ble_scaler = load_ble_model()
@@ -381,13 +404,17 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase, device_id=None):
         print("    1. python collect_ble_baseline.py --minutes 10   (engine running normally)")
         print("    2. python train_bluetooth.py")
         print("  Falling back to SIMULATION mode for now...\n")
-        run_simulation(ai4i_model, ai4i_scaler, supabase)
+        run_simulation(ai4i_model, ai4i_scaler, supabase, log_every=log_every)
         return
 
     ble_threshold = load_threshold(BLE_THRESHOLD_PATH, 'BLE')
 
     buffer       = []
     feature_cols = ['accX', 'accY', 'accZ', 'temp']
+    # Counts every scored window so log_every can throttle the Supabase write.
+    # A window is scored on each notification once the buffer is full, so at a
+    # typical ~13 Hz notification rate this counter advances ~13 times a second.
+    window_count = [0]
 
     print("=" * 55)
     print("  MODE: LIVE BLUETOOTH")
@@ -407,7 +434,7 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase, device_id=None):
             print(f"  → No unit advertising as '{BLE_DEVICE_PREFIX}_{device_id}' specifically "
                   f"(check its DEVICE_ID, or drop --device to accept any unit)")
         print("\n  Falling back to SIMULATION mode...\n")
-        run_simulation(ai4i_model, ai4i_scaler, supabase)
+        run_simulation(ai4i_model, ai4i_scaler, supabase, log_every=log_every)
         return
 
     print(f"\n  ✓ Found: {device.name} [{device.address}]")
@@ -443,8 +470,10 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase, device_id=None):
 
                     print_result(result)
 
-                    log_to_supabase(supabase, result, window_df, source='live',
-                                     device_id=connected_device_id)
+                    window_count[0] += 1
+                    if window_count[0] % log_every == 0:
+                        log_to_supabase(supabase, result, window_df, source='live',
+                                         device_id=connected_device_id)
                     save_result(result)
 
             except Exception as e:
@@ -462,7 +491,7 @@ async def run_bluetooth(ai4i_model, ai4i_scaler, supabase, device_id=None):
 
 
 # ── AUTO-DETECT MODE ──────────────────────────────────────────────────────────
-async def auto_detect(model, scaler, supabase, device_id=None):
+async def auto_detect(model, scaler, supabase, device_id=None, log_every=1):
     """
     Tries to find an EngineIQ ESP32 via Bluetooth (optionally a specific
     device_id — see scan_for_sensor).
@@ -474,7 +503,7 @@ async def auto_detect(model, scaler, supabase, device_id=None):
     except ImportError:
         print("ℹ bleak not installed — running simulation mode.")
         print("  To enable Bluetooth: pip install bleak\n")
-        run_simulation(model, scaler, supabase)
+        run_simulation(model, scaler, supabase, log_every=log_every)
         return
 
     label = f"'{BLE_DEVICE_PREFIX}_{device_id}'" if device_id else f"any '{BLE_DEVICE_PREFIX}_*' sensor"
@@ -483,10 +512,11 @@ async def auto_detect(model, scaler, supabase, device_id=None):
 
     if device:
         print(f"  ✓ ESP32 found! Switching to LIVE BLUETOOTH mode.\n")
-        await run_bluetooth(model, scaler, supabase, device_id=device_id)
+        await run_bluetooth(model, scaler, supabase, device_id=device_id,
+                            log_every=log_every)
     else:
         print(f"  ℹ ESP32 not found. Switching to SIMULATION mode.\n")
-        run_simulation(model, scaler, supabase)
+        run_simulation(model, scaler, supabase, log_every=log_every)
 
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
@@ -498,11 +528,20 @@ if __name__ == '__main__':
                         help='Force simulation mode (use dataset, no hardware)')
     parser.add_argument('--live', action='store_true',
                         help='Force live Bluetooth mode (requires ESP32)')
+    parser.add_argument('--log-every', type=int, default=1, metavar='N',
+                        help="Score every window as normal, but write only every Nth "
+                             "to Supabase (default: 1, write every window). A window is "
+                             "scored per BLE notification, so at the typical ~13 Hz "
+                             "delivered rate --log-every 13 gives roughly one stored "
+                             "record per second instead of thirteen.")
     parser.add_argument('--device', type=str, default=None,
                         help="Target a specific ESP32 by its DEVICE_ID (e.g. --device ESP32-02) "
                              "when more than one EngineIQ sensor might be nearby. "
                              "Omit to connect to whichever matching unit is found first.")
     args = parser.parse_args()
+
+    if args.log_every < 1:
+        parser.error('--log-every must be 1 or greater')
 
     print("\n╔═══════════════════════════════════════════╗")
     print("║  EngineIQ — Inference Engine              ║")
@@ -514,15 +553,21 @@ if __name__ == '__main__':
     supabase      = connect_supabase()
 
     # Choose mode
+    if args.log_every > 1:
+        print(f"  Logging every {args.log_every} scored windows to Supabase "
+              f"(scoring is unaffected).\n")
+
     if args.simulate:
         # Force simulation
-        run_simulation(model, scaler, supabase)
+        run_simulation(model, scaler, supabase, log_every=args.log_every)
 
     elif args.live:
         # Force live Bluetooth
-        asyncio.run(run_bluetooth(model, scaler, supabase, device_id=args.device))
+        asyncio.run(run_bluetooth(model, scaler, supabase, device_id=args.device,
+                                  log_every=args.log_every))
 
     else:
         # Auto-detect: try BLE first, fall back to simulation
         print("  Auto-detecting mode...\n")
-        asyncio.run(auto_detect(model, scaler, supabase, device_id=args.device))
+        asyncio.run(auto_detect(model, scaler, supabase, device_id=args.device,
+                                log_every=args.log_every))
